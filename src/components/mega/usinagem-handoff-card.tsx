@@ -1,37 +1,25 @@
-"use client";
-
-import { ArrowUpRight } from "lucide-react";
-import { toast } from "sonner";
-
-// Configurável — fica vazio até o Felipe definir o endpoint real do sistema de corte.
-const USINAGEM_URL = process.env.NEXT_PUBLIC_USINAGEM_URL ?? "";
+import Link from "next/link";
+import { ArrowRight, DraftingCompass } from "lucide-react";
 
 export function UsinagemHandoffCard() {
-  function handleClick() {
-    if (USINAGEM_URL) {
-      window.open(USINAGEM_URL, "_blank");
-    } else {
-      toast.warning("URL do sistema de Usinagem ainda não configurada.");
-    }
-  }
-
   return (
     <div className="mb-5 flex items-center gap-4 rounded-xl border border-dashed bg-[var(--signal-dim)] p-4.5">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground">
-        <ArrowUpRight className="size-4.5 text-background" />
+        <DraftingCompass className="size-4.5 text-background" />
       </span>
       <div className="flex-1">
-        <h3 className="text-sm font-bold">Usinagem — sistema externo (Felipe)</h3>
+        <h3 className="text-sm font-bold">Usinagem</h3>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Nesting, aproveitamento de chapa e fila do router CNC rodam num app próprio. Este botão entrega a ordem e recebe o resultado de volta.
+          Espaço reservado para o Felipe projetar e construir.
         </p>
       </div>
-      <button
-        onClick={handleClick}
-        className="flex shrink-0 items-center gap-1.5 rounded-md bg-foreground px-3.5 py-2 text-xs font-semibold text-background"
+      <Link
+        href="/producao/usinagem"
+        className="flex shrink-0 items-center gap-1.5 rounded-md bg-foreground px-3.5 py-2 text-xs font-semibold text-background transition-opacity hover:opacity-85"
       >
-        <ArrowUpRight className="size-3.5" /> Abrir Usinagem
-      </button>
+        Acessar Usinagem
+        <ArrowRight className="size-3.5" />
+      </Link>
     </div>
   );
 }
