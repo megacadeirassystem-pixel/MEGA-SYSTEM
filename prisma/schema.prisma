@@ -42,6 +42,7 @@ model Item {
   estoqueMinimo  Decimal  @db.Decimal(12, 3) // ponto de reposição
   estoqueAlvo    Decimal  @db.Decimal(12, 3) // até onde repor quando dispara a compra
   leadTimeDias   Int // tempo médio de reposição, em dias
+  observacoes    String?  @db.Text
   fornecedorPrincipalId String?
   fornecedorPrincipal   Fornecedor? @relation(fields: [fornecedorPrincipalId], references: [id])
   ativo          Boolean  @default(true)
