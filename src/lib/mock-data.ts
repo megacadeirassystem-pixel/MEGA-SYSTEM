@@ -75,24 +75,32 @@ export const clientes = [
   { nome: "Hotel Blue Tree Faria Lima", segmento: "Hotel", cidade: "São Paulo / SP", vendedor: "Carla Souza" },
 ];
 
-export const pipeline = [
-  { etapa: "Lead", total: "R$ 102.000", deals: [
-    { nome: "Hotel Transamérica", seg: "Hotel", valor: "R$ 80.000" },
-    { nome: "Colégio Rio Branco", seg: "Universidade", valor: "R$ 22.000" },
+export type Deal = { nome: string; seg: string; valor: number };
+
+export const pipeline: { etapa: string; deals: Deal[] }[] = [
+  { etapa: "Lead", deals: [
+    { nome: "Hotel Transamérica", seg: "Hotel", valor: 80000 },
+    { nome: "Colégio Rio Branco", seg: "Universidade", valor: 22000 },
   ]},
-  { etapa: "Orçamento", total: "R$ 139.400", deals: [
-    { nome: "Hotel Blue Tree", seg: "Hotel", valor: "R$ 67.200" },
-    { nome: "Lemann Advocacia", seg: "Office", valor: "R$ 14.200" },
+  { etapa: "Orçamento", deals: [
+    { nome: "Hotel Blue Tree", seg: "Hotel", valor: 67200 },
+    { nome: "Lemann Advocacia", seg: "Office", valor: 14200 },
   ]},
-  { etapa: "Negociação", total: "R$ 176.800", deals: [
-    { nome: "Universidade Mackenzie", seg: "Universidade", valor: "R$ 42.800" },
-    { nome: "Memorial América Latina", seg: "Auditório", valor: "R$ 134.000" },
+  { etapa: "Negociação", deals: [
+    { nome: "Universidade Mackenzie", seg: "Universidade", valor: 42800 },
+    { nome: "Memorial América Latina", seg: "Auditório", valor: 134000 },
   ]},
-  { etapa: "Ganho", total: "R$ 99.300", deals: [
-    { nome: "Igreja Batista Central", seg: "Igreja", valor: "R$ 18.400" },
-    { nome: "Faculdade São Camilo", seg: "Universidade", valor: "R$ 29.600" },
+  { etapa: "Ganho", deals: [
+    { nome: "Igreja Batista Central", seg: "Igreja", valor: 18400 },
+    { nome: "Faculdade São Camilo", seg: "Universidade", valor: 29600 },
   ]},
 ];
+
+export const segmentos = ["Universidade", "Igreja", "Hotel", "Auditório", "Office"];
+
+export function formatBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
 
 export const comprasAbertas = [
   { material: "Chapa MDF cru 15mm", para: "MC-0847", qtd: "3 chapas", fornecedor: "Madeireira Jundiapeba", status: "warn" as Status, statusLabel: "Cotando" },
