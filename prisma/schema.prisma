@@ -1,0 +1,264 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================================================
+// CADASTROS — produto vendável e item (matéria-prima / componente comprado)
+// ========================================================================
+
+enum TipoItem {
+  MATERIA_PRIMA // processada internamente (ex.: chapa MDF, tubo de aço)
+  COMPONENTE_COMPRADO // comprado pronto (ex.: pé, parafuso, espuma cortada)
+}
+
+model Produto {
+  id        String   @id @default(cuid())
+  sku       String   @unique
+  linha     String // Jerusalém, Longarina, Universitária...
+  nome      String
+  precoBase Decimal  @db.Decimal(10, 2)
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+
+  bom           BomItem[]
+  pedidoItens   PedidoItem[]
+  ordensProducao OrdemProducao[]
+
+  @@map("produtos")
+}
+
+model Item {
+  id             String   @id @default(cuid())
+  sku            String   @unique
+  nome           String
+  tipo           TipoItem
+  unidadeMedida  String // un, m, m2, kg, l...
+  estoqueMinimo  Decimal  @db.Decimal(12, 3) // ponto de reposição
+  estoqueAlvo    Decimal  @db.Decimal(12, 3) // até onde repor quando dispara a compra
+  leadTimeDias   Int // tempo médio de reposição, em dias
+  fornecedorPrincipalId String?
+  fornecedorPrincipal   Fornecedor? @relation(fields: [fornecedorPrincipalId], references: [id])
+  ativo          Boolean  @default(true)
+  criadoEm       DateTime @default(now())
+
+  estoque          EstoqueItem?
+  bomEntradas      BomItem[]
+  movimentos       MovimentoEstoque[]
+  fornecedorItens  FornecedorItem[]
+  pedidoCompraItens PedidoCompraItem[]
+
+  @@map("itens")
+}
+
+model Fornecedor {
+  id              String   @id @default(cuid())
+  nome            String
+  contato         String?
+  leadTimeMedioDias Int?
+  criadoEm        DateTime @default(now())
+
+  itensPrincipais Item[]
+  fornecedorItens FornecedorItem[]
+  pedidosCompra   PedidoCompra[]
+
+  @@map("fornecedores")
+}
+
+// Um item pode ter mais de um fornecedor possível, com preço/prazo próprios
+model FornecedorItem {
+  id            String  @id @default(cuid())
+  fornecedorId  String
+  itemId        String
+  precoUnitario Decimal @db.Decimal(10, 4)
+  leadTimeDias  Int
+
+  fornecedor Fornecedor @relation(fields: [fornecedorId], references: [id])
+  item       Item       @relation(fields: [itemId], references: [id])
+
+  @@unique([fornecedorId, itemId])
+  @@map("fornecedor_itens")
+}
+
+// ========================================================================
+// BOM — a "receita" de cada produto: quais itens e quanto de cada um
+// ========================================================================
+
+model BomItem {
+  id                  String  @id @default(cuid())
+  produtoId           String
+  itemId              String
+  quantidadePorUnidade Decimal @db.Decimal(12, 4) // quanto desse item 1 unidade do produto consome
+  fatorPerda          Decimal @default(1.0) @db.Decimal(5, 3) // 1.05 = 5% de perda esperada (sobra de corte, refugo)
+
+  produto Produto @relation(fields: [produtoId], references: [id])
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@unique([produtoId, itemId])
+  @@map("bom_itens")
+}
+
+// ========================================================================
+// ESTOQUE — saldo atual por item + o livro-razão de cada movimento
+// ========================================================================
+
+model EstoqueItem {
+  itemId      String  @id
+  saldoAtual  Decimal @default(0) @db.Decimal(12, 3) // fisicamente em mãos
+  reservado   Decimal @default(0) @db.Decimal(12, 3) // comprometido com pedidos confirmados, ainda não consumido
+  atualizadoEm DateTime @updatedAt
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@map("estoque_itens")
+}
+
+enum TipoMovimento {
+  ENTRADA_COMPRA // recebimento de um pedido de compra
+  RESERVA // pedido confirmado: reserva soft, não sai do saldo físico ainda
+  LIBERACAO_RESERVA // produção iniciou/concluiu: a reserva vira saída real (ou é liberada sem uso)
+  SAIDA_PRODUCAO // consumo real registrado na produção
+  AJUSTE // contagem de inventário, perda não ligada a produção, etc.
+  DEVOLUCAO // devolução de cliente ou de produção
+}
+
+// O livro-razão: toda alteração de saldo fica registrada aqui, sempre ligada
+// à origem (pedido, ordem de produção ou pedido de compra) que a causou —
+// é isso que dá rastreabilidade de "o que foi consumido por qual pedido".
+model MovimentoEstoque {
+  id                  String        @id @default(cuid())
+  itemId              String
+  tipo                TipoMovimento
+  quantidade          Decimal       @db.Decimal(12, 3) // sempre positiva; o "tipo" diz se soma ou subtrai do saldo
+  quantidadePlanejada Decimal?      @db.Decimal(12, 3) // só em SAIDA_PRODUCAO: o que a BOM previa, pra medir desperdício
+  pedidoId            String?
+  ordemProducaoId     String?
+  pedidoCompraId      String?
+  observacao          String?
+  criadoEm            DateTime      @default(now())
+
+  item          Item           @relation(fields: [itemId], references: [id])
+  pedido        Pedido?        @relation(fields: [pedidoId], references: [id])
+  ordemProducao OrdemProducao? @relation(fields: [ordemProducaoId], references: [id])
+  pedidoCompra  PedidoCompra?  @relation(fields: [pedidoCompraId], references: [id])
+
+  @@index([itemId, criadoEm])
+  @@map("movimentos_estoque")
+}
+
+// ========================================================================
+// PEDIDOS — venda confirmada, dispara reserva de material
+// ========================================================================
+
+enum StatusPedido {
+  ORCAMENTO
+  CONFIRMADO // ganhou — já dispara a explosão de BOM e reserva de estoque
+  AGUARDANDO_MATERIAL // reserva não cobriu 100% — tem PC em aberto gerado por causa deste pedido
+  EM_PRODUCAO
+  CONCLUIDO
+  CANCELADO
+}
+
+model Pedido {
+  id        String       @id @default(cuid())
+  codigo    String       @unique // MC-0847
+  cliente   String
+  status    StatusPedido @default(ORCAMENTO)
+  criadoEm  DateTime     @default(now())
+
+  itens          PedidoItem[]
+  ordensProducao OrdemProducao[]
+  movimentos     MovimentoEstoque[]
+  pedidosCompra  PedidoCompra[] // PCs gerados por falta de material pra este pedido
+
+  @@map("pedidos")
+}
+
+model PedidoItem {
+  id         String  @id @default(cuid())
+  pedidoId   String
+  produtoId  String
+  quantidade Int
+
+  pedido  Pedido  @relation(fields: [pedidoId], references: [id])
+  produto Produto @relation(fields: [produtoId], references: [id])
+
+  @@map("pedido_itens")
+}
+
+// ========================================================================
+// PRODUÇÃO — onde o consumo planejado vira consumo real
+// ========================================================================
+
+enum StatusOrdemProducao {
+  PLANEJADA
+  EM_PRODUCAO
+  AGUARDANDO_MATERIAL
+  CONCLUIDA
+}
+
+model OrdemProducao {
+  id          String              @id @default(cuid())
+  codigo      String              @unique // OF-0412
+  pedidoId    String
+  produtoId   String
+  quantidade  Int
+  status      StatusOrdemProducao @default(PLANEJADA)
+  criadaEm    DateTime            @default(now())
+  concluidaEm DateTime?
+
+  pedido     Pedido             @relation(fields: [pedidoId], references: [id])
+  produto    Produto            @relation(fields: [produtoId], references: [id])
+  movimentos MovimentoEstoque[]
+
+  @@map("ordens_producao")
+}
+
+// ========================================================================
+// COMPRAS — manual ou sugerido pelo ressuprimento inteligente
+// ========================================================================
+
+enum StatusPedidoCompra {
+  SUGERIDO // gerado automaticamente pelo motor de ressuprimento, aguarda aprovação
+  COTANDO
+  EMITIDO
+  RECEBIDO_PARCIAL
+  RECEBIDO
+  ATRASADO
+  CANCELADO
+}
+
+model PedidoCompra {
+  id            String             @id @default(cuid())
+  codigo        String             @unique // PC-0233
+  fornecedorId  String
+  status        StatusPedidoCompra @default(SUGERIDO)
+  origemPedidoId String? // se este PC existe por causa de um pedido de venda específico
+  criadoEm     DateTime           @default(now())
+  previsaoEntrega DateTime?
+
+  fornecedor Fornecedor         @relation(fields: [fornecedorId], references: [id])
+  origemPedido Pedido?          @relation(fields: [origemPedidoId], references: [id])
+  itens      PedidoCompraItem[]
+  movimentos MovimentoEstoque[]
+
+  @@map("pedidos_compra")
+}
+
+model PedidoCompraItem {
+  id                 String  @id @default(cuid())
+  pedidoCompraId     String
+  itemId             String
+  quantidade         Decimal @db.Decimal(12, 3)
+  quantidadeRecebida Decimal @default(0) @db.Decimal(12, 3)
+  precoUnitario      Decimal @db.Decimal(10, 4)
+
+  pedidoCompra PedidoCompra @relation(fields: [pedidoCompraId], references: [id])
+  item         Item         @relation(fields: [itemId], references: [id])
+
+  @@map("pedido_compra_itens")
+}
