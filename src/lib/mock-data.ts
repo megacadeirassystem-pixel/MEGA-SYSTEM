@@ -105,3 +105,62 @@ export const ordensProducao = [
   { ordem: "OF-0411", pedido: "MC-0845", pecas: "32 · Longarina", etapa: "Montagem", status: "ok" as Status, statusLabel: "No prazo" },
   { ordem: "OF-0409", pedido: "MC-0843", pecas: "28 · Auditório", etapa: "Aguardando chapa", status: "crit" as Status, statusLabel: "Bloqueado" },
 ];
+
+export const entregas = [
+  { pedido: "MC-0846", destino: "Igreja Batista Central — Mogi das Cruzes/SP", veiculo: "VUC 01", motorista: "Devair Nunes", data: "12/11", status: "warn" as Status, statusLabel: "Roteirizando" },
+  { pedido: "MC-0845", destino: "Hotel Blue Tree — São Paulo/SP", veiculo: "Toco 02", motorista: "Josiel Pires", data: "10/11", status: "ok" as Status, statusLabel: "Em rota" },
+  { pedido: "MC-0841", destino: "G. Soneto — Suzano/SP", veiculo: "VUC 01", motorista: "Devair Nunes", data: "08/11", status: "crit" as Status, statusLabel: "Atrasada" },
+  { pedido: "MC-0839", destino: "Colégio Rio Branco — São Paulo/SP", veiculo: "—", motorista: "—", data: "18/11", status: "warn" as Status, statusLabel: "Aguardando produção" },
+];
+
+export const instalacoesAgendadas = [
+  { pedido: "MC-0843", cliente: "Memorial América Latina", tecnico: "Equipe Jundiapeba", data: "14/11" },
+  { pedido: "MC-0840", cliente: "Lemann Advocacia", tecnico: "Equipe SP Capital", data: "11/11" },
+];
+
+export const chamados = [
+  { chamado: "PV-0091", cliente: "Hotel Transamérica", produto: "Jerusalém Ouro", tipo: "Assistência técnica", abertoHa: "3 dias", status: "warn" as Status, statusLabel: "Em atendimento" },
+  { chamado: "PV-0090", cliente: "Universidade Mackenzie", produto: "Diretor Escamoteável", tipo: "Garantia", abertoHa: "1 dia", status: "warn" as Status, statusLabel: "Aguardando peça" },
+  { chamado: "PV-0088", cliente: "Igreja Batista Central", produto: "Jerusalém", tipo: "Reclamação", abertoHa: "6 dias", status: "crit" as Status, statusLabel: "Atrasado" },
+  { chamado: "PV-0085", cliente: "Memorial América Latina", produto: "Hoteleira c/ Prancheta Fixa", tipo: "Garantia", abertoHa: "12 dias", status: "ok" as Status, statusLabel: "Resolvido" },
+];
+
+export const contasReceber = [
+  { ref: "MC-0846 — Igreja Batista Central", vencimento: "15/11", valor: "R$ 18.400", status: "ok" as Status, statusLabel: "No prazo" },
+  { ref: "MC-0845 — Hotel Blue Tree", vencimento: "18/11", valor: "R$ 67.200", status: "ok" as Status, statusLabel: "No prazo" },
+  { ref: "MC-0841 — G. Soneto", vencimento: "05/11", valor: "R$ 51.300", status: "crit" as Status, statusLabel: "Vencido" },
+  { ref: "MC-0840 — Lemann Advocacia", vencimento: "22/11", valor: "R$ 14.200", status: "ok" as Status, statusLabel: "No prazo" },
+];
+
+export const contasPagar = [
+  { fornecedor: "Madeireira Jundiapeba", valor: "R$ 22.900", status: "warn" as Status, statusLabel: "A vencer" },
+  { fornecedor: "Aços Mogi", valor: "R$ 18.600", status: "ok" as Status, statusLabel: "Pago" },
+  { fornecedor: "Folha — novembro", valor: "R$ 29.700", status: "warn" as Status, statusLabel: "A vencer" },
+];
+
+export const dreResumo = [
+  { linha: "Receita bruta", valor: "R$ 96.200", destaque: true },
+  { linha: "Custo de matéria-prima", valor: "− R$ 31.400", destaque: false },
+  { linha: "Despesas operacionais", valor: "− R$ 18.900", destaque: false },
+  { linha: "Margem líquida", valor: "R$ 45.900", destaque: true },
+];
+
+export const notasFiscais = [
+  { numero: "000.189", pedido: "MC-0846", cliente: "Igreja Batista Central", valor: "R$ 18.400", emissao: "07/11", status: "ok" as Status, statusLabel: "Autorizada" },
+  { numero: "000.188", pedido: "MC-0845", cliente: "Hotel Blue Tree", valor: "R$ 67.200", emissao: "05/11", status: "ok" as Status, statusLabel: "Autorizada" },
+  { numero: "—", pedido: "MC-0843", cliente: "Memorial América Latina", valor: "R$ 134.000", emissao: "—", status: "warn" as Status, statusLabel: "Aguardando expedição" },
+  { numero: "—", pedido: "MC-0841", cliente: "G. Soneto", valor: "R$ 51.300", emissao: "—", status: "warn" as Status, statusLabel: "Pendente" },
+];
+
+export const colaboradores = [
+  { nome: "Carla Souza", cargo: "Vendedora sênior", setor: "Comercial", admissao: "03/2022", status: "ok" as Status, statusLabel: "Ativo" },
+  { nome: "Marcos Lima", cargo: "Vendedor", setor: "Comercial", admissao: "08/2023", status: "ok" as Status, statusLabel: "Ativo" },
+  { nome: "Devair Nunes", cargo: "Motorista", setor: "Logística", admissao: "01/2021", status: "ok" as Status, statusLabel: "Ativo" },
+  { nome: "Josiel Pires", cargo: "Operador CNC", setor: "Fábrica", admissao: "06/2020", status: "ok" as Status, statusLabel: "Ativo" },
+  { nome: "Elaine Ferraz", cargo: "Costureira", setor: "Fábrica", admissao: "11/2026", status: "warn" as Status, statusLabel: "Experiência" },
+];
+
+export const comissoes = [
+  { vendedor: "Carla Souza", pedidos: 4, valorVendido: "R$ 109.000", comissao: "4%", aReceber: "R$ 4.360" },
+  { vendedor: "Marcos Lima", pedidos: 2, valorVendido: "R$ 32.600", comissao: "4%", aReceber: "R$ 1.304" },
+];

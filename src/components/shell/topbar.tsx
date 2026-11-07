@@ -1,7 +1,6 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 import { allNavItems } from "@/lib/nav";
 import { CommandPaletteTrigger } from "./command-palette";
@@ -33,7 +32,7 @@ export function Topbar() {
         </span>
         <NotificationsDrawer />
         <button
-          onClick={() => toast("Ações rápidas entram na próxima fase.")}
+          onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
           className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Ação rápida"
         >
