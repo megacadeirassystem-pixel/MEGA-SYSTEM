@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Plus } from "lucide-react";
 import { PageHeader } from "@/components/mega/page-header";
 import { StatusChip } from "@/components/mega/status-chip";
+import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
@@ -126,6 +127,11 @@ export default function EstoquePage() {
       <PageHeader
         title="Estoque"
         description="Saldo geral por item, ou navegue por cadeira pra ver só o que ela usa — tudo direto do banco."
+        action={
+          <Link href="/estoque/itens/novo" className={buttonVariants()}>
+            <Plus /> Novo item
+          </Link>
+        }
       />
 
       <Tabs defaultValue="geral">
