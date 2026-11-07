@@ -3,6 +3,7 @@ import { AlertTriangle, Clock, Info, TrendingUp } from "lucide-react";
 import { RoadRow } from "@/components/mega/road-row";
 import { RevenueChart } from "@/components/mega/revenue-chart";
 import { Sparkline } from "@/components/mega/sparkline";
+import { AnimatedCurrency } from "@/components/mega/animated-currency";
 import { operationalIntel } from "@/lib/mock-data";
 
 const kpis = [
@@ -24,7 +25,7 @@ export default function CommandCenterPage() {
         <div>
           <div className="mb-1.5 text-[11.5px] font-medium text-muted-foreground">RECEITA DO MÊS</div>
           <div className="bg-gradient-to-r from-foreground to-[var(--signal)] bg-clip-text font-sans text-[46px] leading-none font-bold tracking-tight text-transparent">
-            R$ 96,2K
+            R$ <AnimatedCurrency value={96.2} />K
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--good)]">
             <TrendingUp className="size-3.5" />

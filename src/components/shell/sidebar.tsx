@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ChevronLeft, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { homeItem, flowItems, backOfficeItems, type NavItem } from "@/lib/nav";
 
@@ -21,7 +22,11 @@ function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; 
       )}
     >
       {active && (
-        <span className="absolute -left-2.5 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[var(--signal)]" />
+        <motion.span
+          layoutId="nav-active-pill"
+          transition={{ type: "spring", stiffness: 500, damping: 40 }}
+          className="absolute -left-2.5 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[var(--signal)]"
+        />
       )}
       <Icon className={cn("size-4 shrink-0", active && "text-[var(--signal)]")} />
       {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
@@ -65,7 +70,7 @@ export function Sidebar() {
       <div className={cn("flex items-center gap-2.5 border-b px-3.5 py-4", collapsed && "justify-center")}>
         <button
           onClick={toggleCollapsed}
-          className="flex size-7 shrink-0 items-center justify-center rounded-md bg-black p-1"
+          className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#1A0D06] p-1 ring-1 ring-(--brand)/30"
           title="Recolher"
         >
           <Image src="/logo-nova-mega-white.png" alt="Nova Mega" width={22} height={18} className="object-contain" />
