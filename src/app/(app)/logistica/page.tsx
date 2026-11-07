@@ -17,7 +17,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { entregas as initialEntregas, instalacoesAgendadas, type Status } from "@/lib/mock-data";
+import {
+  entregas as initialEntregas,
+  instalacoesAgendadas,
+  pedidosAbertos,
+  destinoPorPedido,
+  veiculos,
+  motoristas,
+  type Status,
+} from "@/lib/mock-data";
 
 const kpis = [
   { label: "ENTREGAS HOJE", value: "3" },
@@ -29,34 +37,28 @@ const kpis = [
 export default function LogisticaPage() {
   const [entregas, setEntregas] = useState(initialEntregas);
   const [open, setOpen] = useState(false);
-  const [pedido, setPedido] = useState("");
-  const [destino, setDestino] = useState("");
-  const [veiculo, setVeiculo] = useState("");
-  const [motorista, setMotorista] = useState("");
+  const [pedido, setPedido] = useState(pedidosAbertos[0].codigo);
+  const [veiculo, setVeiculo] = useState(veiculos[0]);
+  const [motorista, setMotorista] = useState(motoristas[0]);
   const [data, setData] = useState("");
 
+  const destino = destinoPorPedido[pedido] ?? pedidosAbertos.find((p) => p.codigo === pedido)?.cliente ?? "—";
+
   function criarRota() {
-    if (!pedido.trim() || !destino.trim()) {
-      toast.error("Preencha pedido e destino.");
-      return;
-    }
+    const dataFormatada = data ? data.split("-").reverse().slice(0, 2).join("/") : "—";
     setEntregas((prev) => [
       {
-        pedido: pedido.trim(),
-        destino: destino.trim(),
-        veiculo: veiculo.trim() || "—",
-        motorista: motorista.trim() || "—",
-        data: data.trim() || "—",
+        pedido,
+        destino,
+        veiculo,
+        motorista,
+        data: dataFormatada,
         status: "warn" as Status,
         statusLabel: "Roteirizando",
       },
       ...prev,
     ]);
     setOpen(false);
-    setPedido("");
-    setDestino("");
-    setVeiculo("");
-    setMotorista("");
     setData("");
     toast.success("Rota criada — status Roteirizando.");
   }
@@ -78,25 +80,55 @@ export default function LogisticaPage() {
               <div className="flex flex-col gap-3">
                 <label className="flex flex-col gap-1.5 text-xs font-medium">
                   Pedido
-                  <Input value={pedido} onChange={(e) => setPedido(e.target.value)} placeholder="MC-0846" />
+                  <select
+                    value={pedido}
+                    onChange={(e) => setPedido(e.target.value)}
+                    className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  >
+                    {pedidosAbertos.map((p) => (
+                      <option key={p.codigo} value={p.codigo}>
+                        {p.codigo} — {p.cliente}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="flex flex-col gap-1.5 text-xs font-medium">
-                  Destino
-                  <Input value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="Igreja Batista Central — Mogi das Cruzes/SP" />
+                  Destino <span className="font-normal text-muted-foreground">(definido pelo pedido)</span>
+                  <Input value={destino} disabled className="text-muted-foreground" />
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex flex-col gap-1.5 text-xs font-medium">
                     Veículo
-                    <Input value={veiculo} onChange={(e) => setVeiculo(e.target.value)} placeholder="VUC 01" />
+                    <select
+                      value={veiculo}
+                      onChange={(e) => setVeiculo(e.target.value)}
+                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                    >
+                      {veiculos.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                   <label className="flex flex-col gap-1.5 text-xs font-medium">
                     Motorista
-                    <Input value={motorista} onChange={(e) => setMotorista(e.target.value)} placeholder="Devair Nunes" />
+                    <select
+                      value={motorista}
+                      onChange={(e) => setMotorista(e.target.value)}
+                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                    >
+                      {motoristas.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
                   </label>
                 </div>
                 <label className="flex flex-col gap-1.5 text-xs font-medium">
                   Data
-                  <Input value={data} onChange={(e) => setData(e.target.value)} placeholder="12/11" className="font-mono" />
+                  <Input value={data} onChange={(e) => setData(e.target.value)} type="date" className="font-mono" />
                 </label>
               </div>
               <DialogFooter>

@@ -75,28 +75,60 @@ export const clientes = [
   { nome: "Hotel Blue Tree Faria Lima", segmento: "Hotel", cidade: "São Paulo / SP", vendedor: "Carla Souza" },
 ];
 
-export type Deal = { nome: string; seg: string; valor: number };
+export type Deal = {
+  nome: string;
+  seg: string;
+  valor: number;
+  vendedor?: string;
+  linha?: string;
+  telefone?: string;
+  observacao?: string;
+};
 
 export const pipeline: { etapa: string; deals: Deal[] }[] = [
   { etapa: "Lead", deals: [
-    { nome: "Hotel Transamérica", seg: "Hotel", valor: 80000 },
-    { nome: "Colégio Rio Branco", seg: "Universidade", valor: 22000 },
+    { nome: "Hotel Transamérica", seg: "Hotel", valor: 80000, vendedor: "Carla Souza", linha: "Executiva" },
+    { nome: "Colégio Rio Branco", seg: "Universidade", valor: 22000, vendedor: "Marcos Lima", linha: "Universitária" },
   ]},
   { etapa: "Orçamento", deals: [
-    { nome: "Hotel Blue Tree", seg: "Hotel", valor: 67200 },
-    { nome: "Lemann Advocacia", seg: "Office", valor: 14200 },
+    { nome: "Hotel Blue Tree", seg: "Hotel", valor: 67200, vendedor: "Carla Souza", linha: "Executiva" },
+    { nome: "Lemann Advocacia", seg: "Office", valor: 14200, vendedor: "Marcos Lima", linha: "Executiva" },
   ]},
   { etapa: "Negociação", deals: [
-    { nome: "Universidade Mackenzie", seg: "Universidade", valor: 42800 },
-    { nome: "Memorial América Latina", seg: "Auditório", valor: 134000 },
+    { nome: "Universidade Mackenzie", seg: "Universidade", valor: 42800, vendedor: "Carla Souza", linha: "Universitária" },
+    { nome: "Memorial América Latina", seg: "Auditório", valor: 134000, vendedor: "Carla Souza", linha: "Longarina" },
   ]},
   { etapa: "Ganho", deals: [
-    { nome: "Igreja Batista Central", seg: "Igreja", valor: 18400 },
-    { nome: "Faculdade São Camilo", seg: "Universidade", valor: 29600 },
+    { nome: "Igreja Batista Central", seg: "Igreja", valor: 18400, vendedor: "Marcos Lima", linha: "Jerusalém" },
+    { nome: "Faculdade São Camilo", seg: "Universidade", valor: 29600, vendedor: "Carla Souza", linha: "Universitária" },
   ]},
 ];
 
 export const segmentos = ["Universidade", "Igreja", "Hotel", "Auditório", "Office"];
+
+export const vendedores = ["Carla Souza", "Marcos Lima"];
+
+export const linhasProduto = ["Jerusalém", "Longarina", "Universitária", "Executiva", "Hoteleira"];
+
+export const veiculos = ["VUC 01", "Toco 02", "Van 03"];
+
+export const motoristas = ["Devair Nunes", "Robson Alves"];
+
+export const fornecedores = ["Madeireira Jundiapeba", "Aços Mogi"];
+
+// Pedidos em aberto pra referenciar em formulários (reaproveita `orders`), em vez de digitar o código à mão.
+export const pedidosAbertos = orders.map((o) => ({ codigo: o.code, cliente: o.cliente }));
+
+export const destinoPorPedido: Record<string, string> = {
+  "MC-0847": "Universidade Mackenzie — São Paulo/SP",
+  "MC-0846": "Igreja Batista Central — Mogi das Cruzes/SP",
+  "MC-0845": "Hotel Blue Tree — São Paulo/SP",
+  "MC-0844": "Faculdade São Camilo — São Paulo/SP",
+  "MC-0843": "Memorial América Latina — São Paulo/SP",
+  "MC-0841": "G. Soneto — Suzano/SP",
+  "MC-0840": "Lemann Advocacia — São Paulo/SP",
+  "MC-0839": "Colégio Rio Branco — São Paulo/SP",
+};
 
 export function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });

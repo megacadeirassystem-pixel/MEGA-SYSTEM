@@ -16,27 +16,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { comprasAbertas as initialCompras, type Status } from "@/lib/mock-data";
+import { comprasAbertas as initialCompras, pedidosAbertos, fornecedores, type Status } from "@/lib/mock-data";
+
+const destinos = ["Estoque", ...pedidosAbertos.map((p) => p.codigo)];
 
 export default function ComprasPage() {
   const [compras, setCompras] = useState(initialCompras);
   const [open, setOpen] = useState(false);
   const [material, setMaterial] = useState("");
-  const [para, setPara] = useState("");
+  const [para, setPara] = useState(destinos[0]);
   const [qtd, setQtd] = useState("");
-  const [fornecedor, setFornecedor] = useState("");
+  const [fornecedor, setFornecedor] = useState(fornecedores[0]);
 
   function criarPedido() {
-    if (!material.trim() || !fornecedor.trim()) {
-      toast.error("Preencha material e fornecedor.");
+    if (!material.trim()) {
+      toast.error("Preencha o material.");
       return;
     }
     setCompras((prev) => [
       {
         material: material.trim(),
-        para: para.trim() || "Estoque",
+        para,
         qtd: qtd.trim() || "—",
-        fornecedor: fornecedor.trim(),
+        fornecedor,
         status: "warn" as Status,
         statusLabel: "Cotando",
       },
@@ -44,9 +46,7 @@ export default function ComprasPage() {
     ]);
     setOpen(false);
     setMaterial("");
-    setPara("");
     setQtd("");
-    setFornecedor("");
     toast.success("Pedido de compra criado — status Cotando.");
   }
 
@@ -69,17 +69,39 @@ export default function ComprasPage() {
                   Material
                   <Input value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="Chapa MDF cru 15mm" />
                 </label>
-                <label className="flex flex-col gap-1.5 text-xs font-medium">
-                  Para (pedido ou &quot;Estoque&quot;)
-                  <Input value={para} onChange={(e) => setPara(e.target.value)} placeholder="MC-0847" />
-                </label>
-                <label className="flex flex-col gap-1.5 text-xs font-medium">
-                  Quantidade
-                  <Input value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="3 chapas" />
-                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1.5 text-xs font-medium">
+                    Para
+                    <select
+                      value={para}
+                      onChange={(e) => setPara(e.target.value)}
+                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                    >
+                      {destinos.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-xs font-medium">
+                    Quantidade
+                    <Input value={qtd} onChange={(e) => setQtd(e.target.value)} placeholder="3 chapas" />
+                  </label>
+                </div>
                 <label className="flex flex-col gap-1.5 text-xs font-medium">
                   Fornecedor
-                  <Input value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} placeholder="Madeireira Jundiapeba" />
+                  <select
+                    value={fornecedor}
+                    onChange={(e) => setFornecedor(e.target.value)}
+                    className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  >
+                    {fornecedores.map((f) => (
+                      <option key={f} value={f}>
+                        {f}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
               <DialogFooter>

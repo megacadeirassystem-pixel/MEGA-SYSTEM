@@ -17,20 +17,22 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ordensProducao as initialOrdens, type Status } from "@/lib/mock-data";
+import { ordensProducao as initialOrdens, pedidosAbertos, linhasProduto, type Status } from "@/lib/mock-data";
 
 const etapas = ["Usinagem", "Montagem", "Acabamento", "Aguardando chapa"];
 
 export default function ProducaoPage() {
   const [ordens, setOrdens] = useState(initialOrdens);
   const [open, setOpen] = useState(false);
-  const [pedido, setPedido] = useState("");
-  const [pecas, setPecas] = useState("");
+  const [pedido, setPedido] = useState(pedidosAbertos[0].codigo);
+  const [linha, setLinha] = useState(linhasProduto[0]);
+  const [quantidade, setQuantidade] = useState("");
   const [etapa, setEtapa] = useState(etapas[0]);
 
   function criarOrdem() {
-    if (!pedido.trim() || !pecas.trim()) {
-      toast.error("Preencha pedido e peças.");
+    const qtdNum = Number(quantidade);
+    if (!qtdNum || qtdNum <= 0) {
+      toast.error("Informe a quantidade de peças.");
       return;
     }
     const proximoNumero = 413 + ordens.length;
@@ -38,8 +40,8 @@ export default function ProducaoPage() {
     setOrdens((prev) => [
       {
         ordem: `OF-${proximoNumero}`,
-        pedido: pedido.trim(),
-        pecas: pecas.trim(),
+        pedido,
+        pecas: `${qtdNum} · ${linha}`,
         etapa,
         status: (bloqueada ? "crit" : "warn") as Status,
         statusLabel: bloqueada ? "Bloqueado" : "Em andamento",
@@ -47,8 +49,7 @@ export default function ProducaoPage() {
       ...prev,
     ]);
     setOpen(false);
-    setPedido("");
-    setPecas("");
+    setQuantidade("");
     toast.success(`Ordem OF-${proximoNumero} criada.`);
   }
 
@@ -69,12 +70,38 @@ export default function ProducaoPage() {
               <div className="flex flex-col gap-3">
                 <label className="flex flex-col gap-1.5 text-xs font-medium">
                   Pedido
-                  <Input value={pedido} onChange={(e) => setPedido(e.target.value)} placeholder="MC-0847" />
+                  <select
+                    value={pedido}
+                    onChange={(e) => setPedido(e.target.value)}
+                    className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  >
+                    {pedidosAbertos.map((p) => (
+                      <option key={p.codigo} value={p.codigo}>
+                        {p.codigo} — {p.cliente}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <label className="flex flex-col gap-1.5 text-xs font-medium">
-                  Peças
-                  <Input value={pecas} onChange={(e) => setPecas(e.target.value)} placeholder="47 · Universitária" />
-                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1.5 text-xs font-medium">
+                    Linha
+                    <select
+                      value={linha}
+                      onChange={(e) => setLinha(e.target.value)}
+                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                    >
+                      {linhasProduto.map((l) => (
+                        <option key={l} value={l}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1.5 text-xs font-medium">
+                    Peças
+                    <Input value={quantidade} onChange={(e) => setQuantidade(e.target.value)} type="number" placeholder="47" className="font-mono" />
+                  </label>
+                </div>
                 <label className="flex flex-col gap-1.5 text-xs font-medium">
                   Etapa
                   <select
