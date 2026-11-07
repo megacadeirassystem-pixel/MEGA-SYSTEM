@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, DraftingCompass } from "lucide-react";
 import { PageHeader } from "@/components/mega/page-header";
-import { Button } from "@/components/ui/button";
 
 export default function UsinagemPage() {
   return (
@@ -28,12 +27,13 @@ export default function UsinagemPage() {
           ESPAÇO RESERVADO PARA DESENVOLVIMENTO
         </div>
 
-        <Button asChild variant="outline" className="mt-8">
-          <Link href="/">
-            <ArrowLeft className="mr-2 size-4" />
-            Voltar para o Mega System
-          </Link>
-        </Button>
+        <Link
+          href="/"
+          className="mt-8 inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <ArrowLeft className="mr-2 size-4" />
+          Voltar para o Mega System
+        </Link>
       </section>
     </div>
   );
