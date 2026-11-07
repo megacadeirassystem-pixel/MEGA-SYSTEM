@@ -1,116 +1,191 @@
-import { Plus } from "lucide-react";
+import { connection } from "next/server";
 import { PageHeader } from "@/components/mega/page-header";
-import { StatusChip } from "@/components/mega/status-chip";
 import { KpiStrip } from "@/components/mega/kpi-strip";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { contasReceber, contasPagar, dreResumo } from "@/lib/mock-data";
+import { ContasPagarTabela, type ContaPagarView } from "@/components/financeiro/contas-pagar-tabela";
+import { ContasReceberTabela, type ContaReceberView } from "@/components/financeiro/contas-receber-tabela";
+import { ConciliacaoBancaria } from "@/components/financeiro/conciliacao-bancaria";
+import { FluxoCaixaChart, type FluxoCaixaPonto } from "@/components/financeiro/fluxo-caixa-chart";
+import { prisma } from "@/lib/prisma";
+import { formatBRL } from "@/lib/utils";
 
-const kpis = [
-  { label: "A RECEBER (MÊS)", value: "R$ 128,4K" },
-  { label: "A PAGAR (MÊS)", value: "R$ 71,2K" },
-  { label: "SALDO PROJETADO", value: "R$ 57,2K", accent: "var(--good)" },
-  { label: "INADIMPLÊNCIA", value: "3,1%" },
-];
+// Tela inteira depende de dados ao vivo (vencido, fluxo de caixa, DRE do mês) — não há shell
+// estático que valha a pena prerenderizar, então vira uma rota bloqueante normal.
+export const instant = false;
 
-export default function FinanceiroPage() {
+const MESES_PASSADO = 3;
+const MESES_FUTURO = 2;
+
+function inicioMes(data: Date) {
+  return new Date(data.getFullYear(), data.getMonth(), 1);
+}
+function mesLabel(data: Date) {
+  const s = data.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+function mesmoMes(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+}
+
+export default async function FinanceiroPage() {
+  await connection();
+  const hoje = new Date();
+
+  const [contasPagarRaw, contasReceberRaw, contasBancarias, fornecedores, planosContas] = await Promise.all([
+    prisma.contaPagar.findMany({ include: { fornecedor: true, planoContas: true }, orderBy: { vencimento: "asc" } }),
+    prisma.contaReceber.findMany({ include: { planoContas: true }, orderBy: { vencimento: "asc" } }),
+    prisma.contaBancaria.findMany({ orderBy: { nome: "asc" } }),
+    prisma.fornecedor.findMany({ orderBy: { nome: "asc" } }),
+    prisma.planoContas.findMany({ orderBy: { nome: "asc" } }),
+  ]);
+
+  const contasPagar: ContaPagarView[] = contasPagarRaw.map((c) => ({
+    id: c.id,
+    descricao: c.descricao,
+    fornecedor: c.fornecedor?.nome ?? null,
+    planoContas: c.planoContas?.nome ?? null,
+    valor: Number(c.valor),
+    valorPago: Number(c.valorPago),
+    vencimento: c.vencimento.toISOString(),
+    status: c.status,
+  }));
+
+  const contasReceber: ContaReceberView[] = contasReceberRaw.map((c) => ({
+    id: c.id,
+    descricao: c.descricao,
+    clienteNome: c.clienteNome,
+    planoContas: c.planoContas?.nome ?? null,
+    valor: Number(c.valor),
+    valorPago: Number(c.valorPago),
+    vencimento: c.vencimento.toISOString(),
+    status: c.status,
+  }));
+
+  const abertosPagar = contasPagarRaw.filter((c) => c.status === "ABERTO" || c.status === "PARCIAL");
+  const abertosReceber = contasReceberRaw.filter((c) => c.status === "ABERTO" || c.status === "PARCIAL");
+
+  const totalAReceber = abertosReceber.reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
+  const totalAPagar = abertosPagar.reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
+  const saldoProjetado = totalAReceber - totalAPagar;
+  const vencidos = [...abertosPagar, ...abertosReceber].filter((c) => c.vencimento < hoje).length;
+
+  const kpis = [
+    { label: "A RECEBER EM ABERTO", value: formatBRL(totalAReceber) },
+    { label: "A PAGAR EM ABERTO", value: formatBRL(totalAPagar) },
+    { label: "SALDO PROJETADO", value: formatBRL(saldoProjetado), accent: saldoProjetado >= 0 ? "var(--good)" : "var(--crit)" },
+    { label: "TÍTULOS VENCIDOS", value: String(vencidos), accent: vencidos > 0 ? "var(--crit)" : undefined },
+  ];
+
+  // Fluxo de caixa: meses passados (incl. atual) somam o que já foi de fato baixado; meses
+  // futuros projetam pelo vencimento dos títulos ainda abertos — sem isso o gráfico fica vazio
+  // num sistema recém-ligado, que é exatamente a situação de hoje.
+  const fluxoCaixa: FluxoCaixaPonto[] = [];
+  let saldoAcumulado = 0;
+  for (let i = -MESES_PASSADO; i <= MESES_FUTURO; i++) {
+    const refMes = inicioMes(new Date(hoje.getFullYear(), hoje.getMonth() + i, 1));
+    const passado = i <= 0;
+
+    const recebido = passado
+      ? contasReceberRaw.filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, refMes)).reduce((s, c) => s + Number(c.valorPago), 0)
+      : abertosReceber.filter((c) => mesmoMes(c.vencimento, refMes)).reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
+
+    const pago = passado
+      ? contasPagarRaw.filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, refMes)).reduce((s, c) => s + Number(c.valorPago) + Number(c.juros) + Number(c.multa), 0)
+      : abertosPagar.filter((c) => mesmoMes(c.vencimento, refMes)).reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
+
+    saldoAcumulado += recebido - pago;
+    fluxoCaixa.push({ mes: mesLabel(refMes), recebido, pago, saldo: saldoAcumulado });
+  }
+
+  // DRE do mês corrente — só o que já foi efetivamente realizado (baixado), não o que está em aberto.
+  const receitaRealizada = contasReceberRaw.filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, hoje)).reduce((s, c) => s + Number(c.valorPago), 0);
+  const despesaRealizada = contasPagarRaw
+    .filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, hoje))
+    .reduce((s, c) => s + Number(c.valorPago) + Number(c.juros) + Number(c.multa), 0);
+  const margem = receitaRealizada - despesaRealizada;
+
+  const opcoesContasBancarias = contasBancarias.map((c) => ({ id: c.id, nome: c.nome }));
+  const opcoesFornecedores = fornecedores.map((f) => ({ id: f.id, nome: f.nome }));
+  const opcoesPlanoContas = planosContas.map((p) => ({ id: p.id, nome: p.nome }));
+  const opcoesPlanoDespesa = planosContas.filter((p) => p.tipo === "DESPESA").map((p) => ({ id: p.id, nome: p.nome }));
+  const opcoesPlanoReceita = planosContas.filter((p) => p.tipo === "RECEITA").map((p) => ({ id: p.id, nome: p.nome }));
+
   return (
     <div>
       <PageHeader
         eyebrow="Retaguarda"
         title="Financeiro"
-        description="Contas a pagar e receber, fluxo de caixa e DRE — puxando valor de Comercial e Compras automaticamente."
-        action={
-          <Button>
-            <Plus /> Novo lançamento
-          </Button>
-        }
+        description="Contas a pagar e receber, conciliação bancária e DRE — direto do banco, sem planilha."
       />
 
       <KpiStrip items={kpis} />
 
-      <div className="grid gap-4.5 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-xl border bg-card">
-          <div className="flex items-center justify-between border-b px-4 py-3.5">
-            <h3 className="text-[13px] font-semibold">Contas a receber</h3>
-            <span className="text-[11px] text-muted-foreground">{contasReceber.length} itens</span>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Pedido / Cliente</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contasReceber.map((c) => (
-                <TableRow key={c.ref}>
-                  <TableCell className="font-semibold">{c.ref}</TableCell>
-                  <TableCell className="font-mono">{c.vencimento}</TableCell>
-                  <TableCell className="text-right font-mono">{c.valor}</TableCell>
-                  <TableCell>
-                    <StatusChip status={c.status} label={c.statusLabel} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      <Tabs defaultValue="visao-geral">
+        <TabsList>
+          <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
+          <TabsTrigger value="receber">Contas a receber</TabsTrigger>
+          <TabsTrigger value="pagar">Contas a pagar</TabsTrigger>
+          <TabsTrigger value="conciliacao">Conciliação bancária</TabsTrigger>
+        </TabsList>
 
-        <div className="overflow-hidden rounded-xl border bg-card">
-          <div className="flex items-center justify-between border-b px-4 py-3.5">
-            <h3 className="text-[13px] font-semibold">Contas a pagar</h3>
-            <span className="text-[11px] text-muted-foreground">{contasPagar.length} itens</span>
+        <TabsContent value="visao-geral" className="flex flex-col gap-5">
+          <div className="rounded-xl border bg-card p-4.5">
+            <div className="mb-3.5 flex items-baseline justify-between">
+              <h3 className="text-[13.5px] font-semibold">Fluxo de caixa — realizado e projetado</h3>
+              <span className="text-[11px] text-muted-foreground">últimos {MESES_PASSADO} meses + próximos {MESES_FUTURO}</span>
+            </div>
+            <FluxoCaixaChart dados={fluxoCaixa} />
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contasPagar.map((c) => (
-                <TableRow key={c.fornecedor}>
-                  <TableCell className="font-semibold">{c.fornecedor}</TableCell>
-                  <TableCell className="text-right font-mono">{c.valor}</TableCell>
-                  <TableCell>
-                    <StatusChip status={c.status} label={c.statusLabel} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
 
-      <div className="mt-6 mb-2.5 text-[11px] font-bold tracking-wide text-muted-foreground">DRE — RESUMO DO MÊS</div>
-      <div className="overflow-hidden rounded-xl border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Linha</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {dreResumo.map((d) => (
-              <TableRow key={d.linha}>
-                <TableCell className={d.destaque ? "font-semibold" : "text-muted-foreground"}>{d.linha}</TableCell>
-                <TableCell
-                  className="text-right font-mono"
-                  style={d.linha === "Margem líquida" ? { color: "var(--good)" } : undefined}
-                >
-                  {d.valor}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+          <div>
+            <div className="mb-2.5 text-[11px] font-bold tracking-wide text-muted-foreground">DRE — RESUMO DO MÊS (REALIZADO)</div>
+            <div className="overflow-hidden rounded-xl border bg-card">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Linha</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-semibold">Receita realizada</TableCell>
+                    <TableCell className="text-right font-mono">{formatBRL(receitaRealizada)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="text-muted-foreground">Despesas realizadas (inclui juros/multa pagos)</TableCell>
+                    <TableCell className="text-right font-mono">− {formatBRL(despesaRealizada)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-semibold">Margem do mês</TableCell>
+                    <TableCell className="text-right font-mono" style={{ color: margem >= 0 ? "var(--good)" : "var(--crit)" }}>
+                      {formatBRL(margem)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="receber">
+          <ContasReceberTabela contas={contasReceber} planosContas={opcoesPlanoContas} contasBancarias={opcoesContasBancarias} />
+        </TabsContent>
+
+        <TabsContent value="pagar">
+          <ContasPagarTabela contas={contasPagar} fornecedores={opcoesFornecedores} planosContas={opcoesPlanoContas} contasBancarias={opcoesContasBancarias} />
+        </TabsContent>
+
+        <TabsContent value="conciliacao">
+          <ConciliacaoBancaria
+            contasBancarias={opcoesContasBancarias}
+            fornecedores={opcoesFornecedores}
+            planosContasDespesa={opcoesPlanoDespesa}
+            planosContasReceita={opcoesPlanoReceita}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

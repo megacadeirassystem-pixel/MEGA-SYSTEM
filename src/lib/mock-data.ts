@@ -104,6 +104,8 @@ export const pipeline: { etapa: string; deals: Deal[] }[] = [
   ]},
 ];
 
+export { formatBRL } from "@/lib/utils";
+
 export const segmentos = ["Universidade", "Igreja", "Hotel", "Auditório", "Office"];
 
 export const vendedores = ["Carla Souza", "Marcos Lima"];
@@ -129,10 +131,6 @@ export const destinoPorPedido: Record<string, string> = {
   "MC-0840": "Lemann Advocacia — São Paulo/SP",
   "MC-0839": "Colégio Rio Branco — São Paulo/SP",
 };
-
-export function formatBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-}
 
 export const comprasAbertas = [
   { material: "Chapa MDF cru 15mm", para: "MC-0847", qtd: "3 chapas", fornecedor: "Madeireira Jundiapeba", status: "warn" as Status, statusLabel: "Cotando" },
@@ -163,26 +161,6 @@ export const chamados = [
   { chamado: "PV-0090", cliente: "Universidade Mackenzie", produto: "Diretor Escamoteável", tipo: "Garantia", abertoHa: "1 dia", status: "warn" as Status, statusLabel: "Aguardando peça" },
   { chamado: "PV-0088", cliente: "Igreja Batista Central", produto: "Jerusalém", tipo: "Reclamação", abertoHa: "6 dias", status: "crit" as Status, statusLabel: "Atrasado" },
   { chamado: "PV-0085", cliente: "Memorial América Latina", produto: "Hoteleira c/ Prancheta Fixa", tipo: "Garantia", abertoHa: "12 dias", status: "ok" as Status, statusLabel: "Resolvido" },
-];
-
-export const contasReceber = [
-  { ref: "MC-0846 — Igreja Batista Central", vencimento: "15/11", valor: "R$ 18.400", status: "ok" as Status, statusLabel: "No prazo" },
-  { ref: "MC-0845 — Hotel Blue Tree", vencimento: "18/11", valor: "R$ 67.200", status: "ok" as Status, statusLabel: "No prazo" },
-  { ref: "MC-0841 — G. Soneto", vencimento: "05/11", valor: "R$ 51.300", status: "crit" as Status, statusLabel: "Vencido" },
-  { ref: "MC-0840 — Lemann Advocacia", vencimento: "22/11", valor: "R$ 14.200", status: "ok" as Status, statusLabel: "No prazo" },
-];
-
-export const contasPagar = [
-  { fornecedor: "Madeireira Jundiapeba", valor: "R$ 22.900", status: "warn" as Status, statusLabel: "A vencer" },
-  { fornecedor: "Aços Mogi", valor: "R$ 18.600", status: "ok" as Status, statusLabel: "Pago" },
-  { fornecedor: "Folha — novembro", valor: "R$ 29.700", status: "warn" as Status, statusLabel: "A vencer" },
-];
-
-export const dreResumo = [
-  { linha: "Receita bruta", valor: "R$ 96.200", destaque: true },
-  { linha: "Custo de matéria-prima", valor: "− R$ 31.400", destaque: false },
-  { linha: "Despesas operacionais", valor: "− R$ 18.900", destaque: false },
-  { linha: "Margem líquida", valor: "R$ 45.900", destaque: true },
 ];
 
 export const notasFiscais = [

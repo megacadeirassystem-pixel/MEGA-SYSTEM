@@ -67,6 +67,7 @@ model Fornecedor {
   itensPrincipais Item[]
   fornecedorItens FornecedorItem[]
   pedidosCompra   PedidoCompra[]
+  contasPagar     ContaPagar[]
 
   @@map("fornecedores")
 }
@@ -176,6 +177,7 @@ model Pedido {
   ordensProducao OrdemProducao[]
   movimentos     MovimentoEstoque[]
   pedidosCompra  PedidoCompra[] // PCs gerados por falta de material pra este pedido
+  contasReceber  ContaReceber[]
 
   @@map("pedidos")
 }
@@ -263,4 +265,110 @@ model PedidoCompraItem {
   item         Item         @relation(fields: [itemId], references: [id])
 
   @@map("pedido_compra_itens")
+}
+
+// ========================================================================
+// FINANCEIRO — contas a pagar/receber, plano de contas e conciliação bancária
+// ========================================================================
+
+model ContaBancaria {
+  id           String   @id @default(cuid())
+  nome         String
+  banco        String?
+  saldoInicial Decimal  @default(0) @db.Decimal(14, 2)
+  criadoEm     DateTime @default(now())
+
+  contasPagar   ContaPagar[]
+  contasReceber ContaReceber[]
+  conciliacoes  ConciliacaoBancaria[]
+
+  @@map("contas_bancarias")
+}
+
+enum TipoPlanoContas {
+  RECEITA
+  DESPESA
+}
+
+// Categoria financeira (ex.: "Venda de produto", "Matéria-prima", "Frete") — alimenta o DRE.
+model PlanoContas {
+  id     String          @id @default(cuid())
+  codigo String          @unique
+  nome   String
+  tipo   TipoPlanoContas
+
+  contasPagar   ContaPagar[]
+  contasReceber ContaReceber[]
+
+  @@map("plano_contas")
+}
+
+enum StatusTitulo {
+  ABERTO
+  PARCIAL
+  PAGO
+  VENCIDO
+  CANCELADO
+}
+
+model ContaPagar {
+  id              String         @id @default(cuid())
+  descricao       String
+  fornecedorId    String?
+  fornecedor      Fornecedor?    @relation(fields: [fornecedorId], references: [id])
+  planoContasId   String?
+  planoContas     PlanoContas?   @relation(fields: [planoContasId], references: [id])
+  contaBancariaId String?
+  contaBancaria   ContaBancaria? @relation(fields: [contaBancariaId], references: [id])
+  valor           Decimal        @db.Decimal(14, 2)
+  valorPago       Decimal        @default(0) @db.Decimal(14, 2)
+  vencimento      DateTime
+  dataBaixa       DateTime?
+  formaPagamento  String?
+  // Juros/multa são custo extra além do valor do título, não contam pra quitação;
+  // desconto conta como quitação (valorPago + desconto >= valor fecha como PAGO).
+  juros           Decimal        @default(0) @db.Decimal(14, 2)
+  multa           Decimal        @default(0) @db.Decimal(14, 2)
+  desconto        Decimal        @default(0) @db.Decimal(14, 2)
+  status          StatusTitulo   @default(ABERTO)
+  criadoEm        DateTime       @default(now())
+
+  @@index([status, vencimento])
+  @@map("contas_pagar")
+}
+
+model ContaReceber {
+  id              String         @id @default(cuid())
+  descricao       String
+  // Texto livre — Mega ainda não tem um cadastro de Cliente próprio (Pedido.cliente também é
+  // string); títulos manuais (sem pedido) precisam de um nome pra aparecer na tela mesmo assim.
+  clienteNome     String
+  pedidoId        String?
+  pedido          Pedido?        @relation(fields: [pedidoId], references: [id])
+  planoContasId   String?
+  planoContas     PlanoContas?   @relation(fields: [planoContasId], references: [id])
+  contaBancariaId String?
+  contaBancaria   ContaBancaria? @relation(fields: [contaBancariaId], references: [id])
+  valor           Decimal        @db.Decimal(14, 2)
+  valorPago       Decimal        @default(0) @db.Decimal(14, 2)
+  vencimento      DateTime
+  dataBaixa       DateTime?
+  status          StatusTitulo   @default(ABERTO)
+  criadoEm        DateTime       @default(now())
+
+  @@index([status, vencimento])
+  @@map("contas_receber")
+}
+
+// Resultado de um upload de extrato OFX: cada item é {fitId, data, valor, descricao, status,
+// contaPagarId?, contaReceberId?} — guardado como JSON (mesmo padrão simples de Biogreen) em vez
+// de uma tabela própria por item, já que o item em si não precisa ser consultado isoladamente.
+model ConciliacaoBancaria {
+  id              String        @id @default(cuid())
+  contaBancariaId String
+  contaBancaria   ContaBancaria @relation(fields: [contaBancariaId], references: [id])
+  importadoEm     DateTime      @default(now())
+  itens           Json
+
+  @@map("conciliacoes_bancarias")
 }
