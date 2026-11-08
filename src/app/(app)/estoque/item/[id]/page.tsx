@@ -37,7 +37,7 @@ async function ItemDetail({ params }: { params: Promise<{ id: string }> }) {
         <ArrowLeft className="size-3.5" /> Estoque
       </Link>
 
-      <div className="mb-5 flex items-start justify-between gap-5">
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:gap-5">
         <div>
           <div className="font-mono text-[11px] text-muted-foreground">{item.sku}</div>
           <h1 className="text-xl font-bold tracking-tight">{item.nome}</h1>
@@ -56,16 +56,16 @@ async function ItemDetail({ params }: { params: Promise<{ id: string }> }) {
           ["Disponível", `${disponivel} ${item.unidadeMedida}`],
           ["Fornecedor", item.fornecedorPrincipal?.nome ?? "—"],
         ].map(([label, value]) => (
-          <div key={label} className="bg-card p-4">
+          <div key={label} className="min-w-0 bg-card p-3 sm:p-4">
             <div className="text-[10.5px] font-medium text-muted-foreground">{label}</div>
-            <div className="mt-1 font-mono text-[15px] font-semibold">{value}</div>
+            <div className="mt-1 break-words font-mono text-sm font-semibold sm:text-[15px]">{value}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid min-w-0 gap-4 sm:gap-5 lg:grid-cols-2">
         {/* editar */}
-        <form action={updateItemWithId} className="rounded-xl border bg-card p-5">
+        <form action={updateItemWithId} className="min-w-0 rounded-xl border bg-card p-4 sm:p-5">
           <h3 className="mb-4 text-sm font-semibold">Parâmetros de ressuprimento</h3>
           <div className="flex flex-col gap-3.5">
             <label className="flex flex-col gap-1.5 text-xs font-medium">
@@ -75,7 +75,7 @@ async function ItemDetail({ params }: { params: Promise<{ id: string }> }) {
                 type="number"
                 step="0.001"
                 defaultValue={minimo}
-                className="rounded-md border bg-background px-2.5 py-1.5 font-mono text-sm"
+                className="min-h-11 w-full rounded-md border bg-background px-3 py-2 text-base font-mono sm:text-sm"
               />
             </label>
             <label className="flex flex-col gap-1.5 text-xs font-medium">
@@ -104,10 +104,10 @@ async function ItemDetail({ params }: { params: Promise<{ id: string }> }) {
                 defaultValue={item.observacoes ?? ""}
                 rows={4}
                 placeholder="Notas internas — variação de fornecedor, tolerância de corte, histórico de problema…"
-                className="rounded-md border bg-background px-2.5 py-1.5 text-sm"
+                className="min-h-11 w-full rounded-md border bg-background px-3 py-2 text-base sm:text-sm"
               />
             </label>
-            <Button type="submit" className="mt-1 self-start">
+            <Button type="submit" className="mt-1 min-h-11 w-full sm:w-auto">
               Salvar alterações
             </Button>
           </div>
