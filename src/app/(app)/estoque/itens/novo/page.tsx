@@ -9,17 +9,17 @@ async function NovoItemForm() {
   const fornecedores = await prisma.fornecedor.findMany({ orderBy: { nome: "asc" } });
 
   return (
-    <form action={createItem} className="max-w-xl rounded-xl border bg-card p-6">
-      <div className="grid grid-cols-2 gap-3.5">
-        <label className="col-span-2 flex flex-col gap-1.5 text-xs font-medium sm:col-span-1">
+    <form action={createItem} className="w-full max-w-xl rounded-xl border bg-card p-4 sm:p-6">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium">
           SKU
-          <input name="sku" required placeholder="CP-TECIDO-AZUL" className="rounded-md border bg-background px-2.5 py-1.5 font-mono text-sm" />
+          <input name="sku" required placeholder="CP-TECIDO-AZUL" className="min-h-11 w-full rounded-md border bg-background px-3 py-2 text-base font-mono sm:text-sm" />
         </label>
         <label className="col-span-2 flex flex-col gap-1.5 text-xs font-medium sm:col-span-1">
           Unidade de medida
-          <input name="unidadeMedida" required defaultValue="un" placeholder="un, m, m2, kg…" className="rounded-md border bg-background px-2.5 py-1.5 text-sm" />
+          <input name="unidadeMedida" required defaultValue="un" placeholder="un, m, m2, kg…" className="min-h-11 w-full rounded-md border bg-background px-3 py-2 text-base sm:text-sm" />
         </label>
-        <label className="col-span-2 flex flex-col gap-1.5 text-xs font-medium">
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium">
           Nome
           <input name="nome" required placeholder="Tecido técnico azul marinho" className="rounded-md border bg-background px-2.5 py-1.5 text-sm" />
         </label>
@@ -41,7 +41,7 @@ async function NovoItemForm() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1.5 text-xs font-medium">
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs font-medium">
           Ponto de reposição (mínimo)
           <input name="estoqueMinimo" type="number" step="0.001" defaultValue={0} className="rounded-md border bg-background px-2.5 py-1.5 font-mono text-sm" />
         </label>
@@ -58,7 +58,7 @@ async function NovoItemForm() {
           <input name="saldoInicial" type="number" step="0.001" defaultValue={0} className="rounded-md border bg-background px-2.5 py-1.5 font-mono text-sm" />
         </label>
       </div>
-      <Button type="submit" className="mt-5">
+      <Button type="submit" className="mt-5 min-h-11 w-full sm:w-auto">
         Criar item
       </Button>
     </form>
