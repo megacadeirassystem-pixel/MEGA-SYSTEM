@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronRight, Plus } from "lucide-react";
 import { PageHeader } from "@/components/mega/page-header";
 import { StatusChip } from "@/components/mega/status-chip";
+import { ClickableRow } from "@/components/mega/clickable-row";
 import { buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -39,30 +40,28 @@ async function EstoqueGeralTable() {
           const { status, label } = statusEstoque(disponivel, minimo);
 
           return (
-            <Link key={item.id} href={`/estoque/item/${item.id}`} className="contents">
-              <TableRow className="cursor-pointer">
-                <TableCell className="font-semibold">
-                  {item.nome}
-                  <div className="font-mono text-[10.5px] font-normal text-muted-foreground">{item.sku}</div>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {item.tipo === "MATERIA_PRIMA" ? "Matéria-prima" : "Componente comprado"}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {saldo} {item.unidadeMedida}
-                </TableCell>
-                <TableCell className="text-right font-mono text-muted-foreground">{reservado}</TableCell>
-                <TableCell className="text-right font-mono font-semibold">{disponivel}</TableCell>
-                <TableCell className="text-right font-mono text-muted-foreground">{minimo}</TableCell>
-                <TableCell>{item.fornecedorPrincipal?.nome ?? "—"}</TableCell>
-                <TableCell>
-                  <StatusChip status={status} label={label} />
-                </TableCell>
-                <TableCell>
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                </TableCell>
-              </TableRow>
-            </Link>
+            <ClickableRow key={item.id} href={`/estoque/item/${item.id}`}>
+              <TableCell className="font-semibold">
+                {item.nome}
+                <div className="font-mono text-[10.5px] font-normal text-muted-foreground">{item.sku}</div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {item.tipo === "MATERIA_PRIMA" ? "Matéria-prima" : "Componente comprado"}
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {saldo} {item.unidadeMedida}
+              </TableCell>
+              <TableCell className="text-right font-mono text-muted-foreground">{reservado}</TableCell>
+              <TableCell className="text-right font-mono font-semibold">{disponivel}</TableCell>
+              <TableCell className="text-right font-mono text-muted-foreground">{minimo}</TableCell>
+              <TableCell>{item.fornecedorPrincipal?.nome ?? "—"}</TableCell>
+              <TableCell>
+                <StatusChip status={status} label={label} />
+              </TableCell>
+              <TableCell>
+                <ChevronRight className="size-3.5 text-muted-foreground" />
+              </TableCell>
+            </ClickableRow>
           );
         })}
       </TableBody>
@@ -88,16 +87,14 @@ async function EstoquePorProdutoTable() {
       </TableHeader>
       <TableBody>
         {produtos.map((p) => (
-          <Link key={p.id} href={`/estoque/produto/${p.id}`} className="contents">
-            <TableRow className="cursor-pointer">
-              <TableCell className="font-semibold">{p.nome}</TableCell>
-              <TableCell className="text-muted-foreground">{p.linha}</TableCell>
-              <TableCell className="text-right font-mono">{p.bom.length}</TableCell>
-              <TableCell>
-                <ChevronRight className="size-3.5 text-muted-foreground" />
-              </TableCell>
-            </TableRow>
-          </Link>
+          <ClickableRow key={p.id} href={`/estoque/produto/${p.id}`}>
+            <TableCell className="font-semibold">{p.nome}</TableCell>
+            <TableCell className="text-muted-foreground">{p.linha}</TableCell>
+            <TableCell className="text-right font-mono">{p.bom.length}</TableCell>
+            <TableCell>
+              <ChevronRight className="size-3.5 text-muted-foreground" />
+            </TableCell>
+          </ClickableRow>
         ))}
         {produtos.length === 0 && (
           <TableRow>

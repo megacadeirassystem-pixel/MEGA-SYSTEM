@@ -60,7 +60,7 @@ export function CommandPaletteTrigger() {
         <circle cx="11" cy="11" r="6.3" />
         <path d="m20 20-4.4-4.4" />
       </svg>
-      <span className="flex-1 text-left text-xs">Buscar módulo ou executar comando…</span>
+      <span className="min-w-0 flex-1 truncate text-left text-xs">Buscar módulo ou executar comando…</span>
       <kbd className="rounded border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">⌘K</kbd>
     </button>
   );
