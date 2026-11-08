@@ -57,6 +57,7 @@ async function ProdutoDetail({ params }: { params: Promise<{ id: string }> }) {
             {produto.bom.length} itens na receita · SKU {produto.sku}
           </p>
         </div>
+      </div>
         {produto.bom.length > 0 && (
         <>
           <div className="mb-5 space-y-3 md:hidden">
