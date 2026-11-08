@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusChip } from "@/components/mega/status-chip";
+import { ClickableRow } from "@/components/mega/clickable-row";
 import { formatBRL, formatDate } from "@/lib/utils";
 import { emitirNfe, cancelarNfe } from "@/lib/actions/fiscal";
+import { chip, JANELA_HORAS, type StatusNotaFiscal } from "@/lib/fiscal-status";
 
 export type NotaFiscalView = {
   id: string;
@@ -18,19 +20,11 @@ export type NotaFiscalView = {
   referenciaPedido: string | null;
   clienteNome: string;
   valor: number;
-  status: "AUTORIZADA" | "CANCELADA" | "PENDENTE";
+  status: StatusNotaFiscal;
   dataEmissao: string;
   dataCancelamento: string | null;
   motivoCancelamento: string | null;
 };
-
-function chip(status: NotaFiscalView["status"]) {
-  if (status === "AUTORIZADA") return { status: "ok" as const, label: "Autorizada" };
-  if (status === "PENDENTE") return { status: "warn" as const, label: "Pendente" };
-  return null; // CANCELADA — texto neutro, não chip
-}
-
-const JANELA_HORAS = 24;
 
 export function NotasFiscaisTabela({ notas }: { notas: NotaFiscalView[] }) {
   const [agora] = useState(() => Date.now());
@@ -66,7 +60,7 @@ export function NotasFiscaisTabela({ notas }: { notas: NotaFiscalView[] }) {
               const horasDesdeEmissao = (agora - new Date(n.dataEmissao).getTime()) / 36e5;
               const podeCancel = n.status === "AUTORIZADA" && horasDesdeEmissao <= JANELA_HORAS;
               return (
-                <TableRow key={n.id}>
+                <ClickableRow key={n.id} href={`/fiscal/nota/${n.id}`}>
                   <TableCell className="font-mono">
                     {String(n.numero).padStart(6, "0").replace(/^(\d{3})(\d{3})$/, "$1.$2")}
                     <div className="font-mono text-[10px] text-muted-foreground" title={n.chaveAcesso}>
@@ -86,8 +80,8 @@ export function NotasFiscaisTabela({ notas }: { notas: NotaFiscalView[] }) {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell>{podeCancel && <CancelarNfeDialog id={n.id} numero={n.numero} />}</TableCell>
-                </TableRow>
+                  <TableCell onClick={(e) => e.stopPropagation()}>{podeCancel && <CancelarNfeDialog id={n.id} numero={n.numero} />}</TableCell>
+                </ClickableRow>
               );
             })}
           </TableBody>
@@ -141,7 +135,7 @@ function EmitirNfeDialog() {
   );
 }
 
-function CancelarNfeDialog({ id, numero }: { id: string; numero: number }) {
+export function CancelarNfeDialog({ id, numero }: { id: string; numero: number }) {
   const [open, setOpen] = useState(false);
 
   async function action(formData: FormData) {

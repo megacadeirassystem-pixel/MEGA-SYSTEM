@@ -29,6 +29,45 @@ export async function atualizarStatusColaborador(formData: FormData) {
   revalidatePath("/rh");
 }
 
+export async function atualizarColaborador(formData: FormData) {
+  const id = String(formData.get("id"));
+  const nome = String(formData.get("nome") ?? "").trim();
+  const cargo = String(formData.get("cargo") ?? "").trim();
+  const setor = String(formData.get("setor") ?? "FABRICA") as "FABRICA" | "COMERCIAL" | "LOGISTICA" | "ADMINISTRACAO";
+  const telefone = String(formData.get("telefone") ?? "").trim() || null;
+  const salario = formData.get("salario") ? Number(formData.get("salario")) : null;
+  const dataAdmissao = new Date(String(formData.get("dataAdmissao")));
+  if (!nome || !cargo || isNaN(dataAdmissao.getTime())) throw new Error("Preencha nome, cargo e data de admissão.");
+
+  await prisma.colaborador.update({
+    where: { id },
+    data: { nome, cargo, setor, telefone, salario, dataAdmissao },
+  });
+  revalidatePath("/rh");
+  revalidatePath(`/rh/colaborador/${id}`);
+}
+
+/** Exclusão em cascata (comissões e registros de ponto somem junto) — é um cadastro interno de
+ * RH, não um documento fiscal com retenção legal obrigatória, então apagar de verdade é razoável
+ * pra corrigir um cadastro errado. Pra desligamento de verdade, o caminho é mudar o status. */
+export async function excluirColaborador(formData: FormData) {
+  const id = String(formData.get("id"));
+  await prisma.colaborador.delete({ where: { id } });
+  revalidatePath("/rh");
+}
+
+export async function excluirComissao(formData: FormData) {
+  const id = String(formData.get("id"));
+  await prisma.comissao.delete({ where: { id } });
+  revalidatePath("/rh");
+}
+
+export async function excluirRegistroPonto(formData: FormData) {
+  const id = String(formData.get("id"));
+  await prisma.registroPonto.delete({ where: { id } });
+  revalidatePath("/rh");
+}
+
 export async function lancarComissao(formData: FormData) {
   const colaboradorId = String(formData.get("colaboradorId"));
   const mes = String(formData.get("mesReferencia")); // "2026-11"

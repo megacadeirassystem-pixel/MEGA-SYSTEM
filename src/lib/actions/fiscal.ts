@@ -75,3 +75,23 @@ export async function cancelarNfe(formData: FormData) {
   });
   revalidatePath("/fiscal");
 }
+
+/** Numero/série/chave não mudam depois de emitida (identidade do documento) — só os dados
+ * descritivos (cliente, referência, valor) podem ser corrigidos. */
+export async function atualizarNotaFiscal(formData: FormData) {
+  const id = String(formData.get("id"));
+  const clienteNome = String(formData.get("clienteNome") ?? "").trim();
+  const referenciaPedido = String(formData.get("referenciaPedido") ?? "").trim() || null;
+  const valor = Number(formData.get("valor") ?? 0);
+  if (!clienteNome || !valor || valor <= 0) throw new Error("Preencha cliente e valor.");
+
+  await prisma.notaFiscal.update({ where: { id }, data: { clienteNome, referenciaPedido, valor } });
+  revalidatePath("/fiscal");
+  revalidatePath(`/fiscal/nota/${id}`);
+}
+
+export async function excluirNotaFiscal(formData: FormData) {
+  const id = String(formData.get("id"));
+  await prisma.notaFiscal.delete({ where: { id } });
+  revalidatePath("/fiscal");
+}

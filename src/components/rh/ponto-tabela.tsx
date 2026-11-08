@@ -7,7 +7,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { lancarPonto } from "@/lib/actions/rh";
+import { ConfirmDeleteButton } from "@/components/mega/confirm-delete-button";
+import { lancarPonto, excluirRegistroPonto } from "@/lib/actions/rh";
 
 export type RegistroPontoView = {
   id: string;
@@ -43,12 +44,13 @@ export function PontoTabela({ registros, colaboradores }: { registros: RegistroP
               <TableHead className="text-right">Faltas</TableHead>
               <TableHead className="text-right">Horas extras</TableHead>
               <TableHead>Observação</TableHead>
+              <TableHead className="w-16" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {registros.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   Nenhum resumo de ponto lançado ainda.
                 </TableCell>
               </TableRow>
@@ -63,6 +65,14 @@ export function PontoTabela({ registros, colaboradores }: { registros: RegistroP
                 </TableCell>
                 <TableCell className="text-right font-mono">{r.horasExtras}h</TableCell>
                 <TableCell className="text-muted-foreground">{r.observacao ?? "—"}</TableCell>
+                <TableCell>
+                  <ConfirmDeleteButton
+                    action={excluirRegistroPonto}
+                    id={r.id}
+                    title={`Excluir ponto de ${r.colaboradorNome}`}
+                    description={`Resumo de ${mesLabel(r.mesReferencia)} some pra sempre.`}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

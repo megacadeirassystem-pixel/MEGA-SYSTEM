@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusChip } from "@/components/mega/status-chip";
+import { ConfirmDeleteButton } from "@/components/mega/confirm-delete-button";
 import { formatBRL } from "@/lib/utils";
-import { lancarComissao, marcarComissaoPaga } from "@/lib/actions/rh";
+import { lancarComissao, marcarComissaoPaga, excluirComissao } from "@/lib/actions/rh";
 
 export type ComissaoView = {
   id: string;
@@ -45,7 +46,7 @@ export function ComissoesTabela({ comissoes, vendedores }: { comissoes: Comissao
               <TableHead className="text-right">%</TableHead>
               <TableHead className="text-right">Comissão</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-28" />
+              <TableHead className="w-44" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -66,7 +67,17 @@ export function ComissoesTabela({ comissoes, vendedores }: { comissoes: Comissao
                 <TableCell>
                   {c.pago ? <StatusChip status="ok" label="Pago" /> : <StatusChip status="warn" label="A pagar" />}
                 </TableCell>
-                <TableCell>{!c.pago && <MarcarPagoButton id={c.id} />}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    {!c.pago && <MarcarPagoButton id={c.id} />}
+                    <ConfirmDeleteButton
+                      action={excluirComissao}
+                      id={c.id}
+                      title={`Excluir comissão de ${c.colaboradorNome}`}
+                      description="Essa comissão some do histórico pra sempre."
+                    />
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -449,7 +449,7 @@ model Colaborador {
 model Comissao {
   id            String      @id @default(cuid())
   colaboradorId String
-  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
   mesReferencia DateTime
   valorVendido  Decimal     @db.Decimal(12, 2)
   percentual    Decimal     @db.Decimal(5, 2)
@@ -468,7 +468,7 @@ model Comissao {
 model RegistroPonto {
   id              String      @id @default(cuid())
   colaboradorId   String
-  colaborador     Colaborador @relation(fields: [colaboradorId], references: [id])
+  colaborador     Colaborador @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
   mesReferencia   DateTime
   diasTrabalhados Int
   faltas          Int         @default(0)

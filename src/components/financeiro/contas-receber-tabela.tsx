@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusChip } from "@/components/mega/status-chip";
+import { ClickableRow } from "@/components/mega/clickable-row";
 import { formatBRL, formatDate } from "@/lib/utils";
 import { statusTituloChip } from "@/lib/financeiro-helpers";
 import { criarContaReceber, darBaixaContaReceber, cancelarContaReceber } from "@/lib/actions/financeiro";
@@ -23,7 +24,7 @@ export type ContaReceberView = {
   status: "ABERTO" | "PARCIAL" | "PAGO" | "VENCIDO" | "CANCELADO";
 };
 
-type Opcao = { id: string; nome: string };
+export type Opcao = { id: string; nome: string };
 
 export function ContasReceberTabela({ contas, planosContas, contasBancarias }: { contas: ContaReceberView[]; planosContas: Opcao[]; contasBancarias: Opcao[] }) {
   return (
@@ -56,7 +57,7 @@ export function ContasReceberTabela({ contas, planosContas, contasBancarias }: {
               const chip = statusTituloChip(c.status, c.vencimento);
               const saldo = c.valor - c.valorPago;
               return (
-                <TableRow key={c.id}>
+                <ClickableRow key={c.id} href={`/financeiro/receber/${c.id}`}>
                   <TableCell className="font-semibold">{c.descricao}</TableCell>
                   <TableCell>{c.clienteNome}</TableCell>
                   <TableCell className="text-muted-foreground">{c.planoContas ?? "—"}</TableCell>
@@ -65,7 +66,7 @@ export function ContasReceberTabela({ contas, planosContas, contasBancarias }: {
                   <TableCell>
                     {chip ? <StatusChip status={chip.status} label={chip.label} /> : <span className="text-xs text-muted-foreground">Cancelado</span>}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     {c.status !== "PAGO" && c.status !== "CANCELADO" && (
                       <div className="flex items-center gap-1.5">
                         <DarBaixaReceber contaId={c.id} saldoRestante={saldo} contasBancarias={contasBancarias} />
@@ -78,7 +79,7 @@ export function ContasReceberTabela({ contas, planosContas, contasBancarias }: {
                       </div>
                     )}
                   </TableCell>
-                </TableRow>
+                </ClickableRow>
               );
             })}
           </TableBody>
@@ -88,11 +89,11 @@ export function ContasReceberTabela({ contas, planosContas, contasBancarias }: {
   );
 }
 
-function hojeISO() {
+export function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function DarBaixaReceber({ contaId, saldoRestante, contasBancarias }: { contaId: string; saldoRestante: number; contasBancarias: Opcao[] }) {
+export function DarBaixaReceber({ contaId, saldoRestante, contasBancarias }: { contaId: string; saldoRestante: number; contasBancarias: Opcao[] }) {
   const [open, setOpen] = useState(false);
 
   async function action(formData: FormData) {

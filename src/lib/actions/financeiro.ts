@@ -99,6 +99,41 @@ export async function cancelarContaPagar(formData: FormData) {
   revalidatePath("/financeiro");
 }
 
+export async function atualizarContaPagar(formData: FormData) {
+  const id = String(formData.get("id"));
+  const descricao = String(formData.get("descricao") ?? "").trim();
+  const valor = Number(formData.get("valor") ?? 0);
+  const vencimento = new Date(String(formData.get("vencimento")));
+  if (!descricao || !valor || valor <= 0 || isNaN(vencimento.getTime())) {
+    throw new Error("Preencha descrição, valor e vencimento.");
+  }
+
+  await prisma.contaPagar.update({
+    where: { id },
+    data: {
+      descricao,
+      valor,
+      vencimento,
+      fornecedorId: optionalId(formData, "fornecedorId") ?? null,
+      planoContasId: optionalId(formData, "planoContasId") ?? null,
+    },
+  });
+  revalidatePath("/financeiro");
+  revalidatePath(`/financeiro/pagar/${id}`);
+}
+
+/** Só deixa excluir título que ainda não teve nenhuma baixa — apagar um registro que já tem
+ * dinheiro de verdade movimentado perderia rastro; o caminho pra isso é Cancelar. */
+export async function excluirContaPagar(formData: FormData) {
+  const id = String(formData.get("id"));
+  const conta = await prisma.contaPagar.findUniqueOrThrow({ where: { id } });
+  if (Number(conta.valorPago) > 0) {
+    throw new Error("Este título já teve baixa registrada — use Cancelar em vez de excluir.");
+  }
+  await prisma.contaPagar.delete({ where: { id } });
+  revalidatePath("/financeiro");
+}
+
 // ========================================================================
 // Contas a receber
 // ========================================================================
@@ -151,6 +186,34 @@ export async function darBaixaContaReceber(formData: FormData) {
 export async function cancelarContaReceber(formData: FormData) {
   const contaId = String(formData.get("contaId"));
   await prisma.contaReceber.update({ where: { id: contaId }, data: { status: "CANCELADO" } });
+  revalidatePath("/financeiro");
+}
+
+export async function atualizarContaReceber(formData: FormData) {
+  const id = String(formData.get("id"));
+  const descricao = String(formData.get("descricao") ?? "").trim();
+  const clienteNome = String(formData.get("clienteNome") ?? "").trim();
+  const valor = Number(formData.get("valor") ?? 0);
+  const vencimento = new Date(String(formData.get("vencimento")));
+  if (!descricao || !clienteNome || !valor || valor <= 0 || isNaN(vencimento.getTime())) {
+    throw new Error("Preencha descrição, cliente, valor e vencimento.");
+  }
+
+  await prisma.contaReceber.update({
+    where: { id },
+    data: { descricao, clienteNome, valor, vencimento, planoContasId: optionalId(formData, "planoContasId") ?? null },
+  });
+  revalidatePath("/financeiro");
+  revalidatePath(`/financeiro/receber/${id}`);
+}
+
+export async function excluirContaReceber(formData: FormData) {
+  const id = String(formData.get("id"));
+  const conta = await prisma.contaReceber.findUniqueOrThrow({ where: { id } });
+  if (Number(conta.valorPago) > 0) {
+    throw new Error("Este título já teve baixa registrada — use Cancelar em vez de excluir.");
+  }
+  await prisma.contaReceber.delete({ where: { id } });
   revalidatePath("/financeiro");
 }
 

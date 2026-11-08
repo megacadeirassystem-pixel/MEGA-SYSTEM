@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusChip } from "@/components/mega/status-chip";
+import { ClickableRow } from "@/components/mega/clickable-row";
 import { formatBRL, formatDate } from "@/lib/utils";
 import { statusTituloChip, FORMAS_PAGAMENTO } from "@/lib/financeiro-helpers";
 import { criarContaPagar, darBaixaContaPagar, cancelarContaPagar } from "@/lib/actions/financeiro";
@@ -23,7 +24,7 @@ export type ContaPagarView = {
   status: "ABERTO" | "PARCIAL" | "PAGO" | "VENCIDO" | "CANCELADO";
 };
 
-type Opcao = { id: string; nome: string };
+export type Opcao = { id: string; nome: string };
 
 export function ContasPagarTabela({
   contas,
@@ -66,7 +67,7 @@ export function ContasPagarTabela({
               const chip = statusTituloChip(c.status, c.vencimento);
               const saldo = c.valor - c.valorPago;
               return (
-                <TableRow key={c.id}>
+                <ClickableRow key={c.id} href={`/financeiro/pagar/${c.id}`}>
                   <TableCell className="font-semibold">{c.descricao}</TableCell>
                   <TableCell className="text-muted-foreground">{c.fornecedor ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{c.planoContas ?? "—"}</TableCell>
@@ -75,7 +76,7 @@ export function ContasPagarTabela({
                   <TableCell>
                     {chip ? <StatusChip status={chip.status} label={chip.label} /> : <span className="text-xs text-muted-foreground">Cancelado</span>}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     {c.status !== "PAGO" && c.status !== "CANCELADO" && (
                       <div className="flex items-center gap-1.5">
                         <DarBaixaPagar contaId={c.id} saldoRestante={saldo} contasBancarias={contasBancarias} />
@@ -88,7 +89,7 @@ export function ContasPagarTabela({
                       </div>
                     )}
                   </TableCell>
-                </TableRow>
+                </ClickableRow>
               );
             })}
           </TableBody>
@@ -98,11 +99,11 @@ export function ContasPagarTabela({
   );
 }
 
-function hojeISO() {
+export function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function DarBaixaPagar({ contaId, saldoRestante, contasBancarias }: { contaId: string; saldoRestante: number; contasBancarias: Opcao[] }) {
+export function DarBaixaPagar({ contaId, saldoRestante, contasBancarias }: { contaId: string; saldoRestante: number; contasBancarias: Opcao[] }) {
   const [open, setOpen] = useState(false);
   const [valor, setValor] = useState(saldoRestante);
   const [juros, setJuros] = useState(0);

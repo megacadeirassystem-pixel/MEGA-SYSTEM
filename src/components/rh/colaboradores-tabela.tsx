@@ -8,31 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusChip } from "@/components/mega/status-chip";
+import { ClickableRow } from "@/components/mega/clickable-row";
 import { formatDate } from "@/lib/utils";
 import { criarColaborador, atualizarStatusColaborador } from "@/lib/actions/rh";
+import { chip, setorLabel, type SetorColaborador, type StatusColaborador } from "@/lib/rh-status";
 
 export type ColaboradorView = {
   id: string;
   nome: string;
   cargo: string;
-  setor: "FABRICA" | "COMERCIAL" | "LOGISTICA" | "ADMINISTRACAO";
+  setor: SetorColaborador;
   dataAdmissao: string;
-  status: "ATIVO" | "EXPERIENCIA" | "AFASTADO" | "DESLIGADO";
+  status: StatusColaborador;
 };
-
-const setorLabel: Record<ColaboradorView["setor"], string> = {
-  FABRICA: "Fábrica",
-  COMERCIAL: "Comercial",
-  LOGISTICA: "Logística",
-  ADMINISTRACAO: "Administração",
-};
-
-function chip(status: ColaboradorView["status"]) {
-  if (status === "ATIVO") return { status: "ok" as const, label: "Ativo" };
-  if (status === "EXPERIENCIA") return { status: "warn" as const, label: "Experiência" };
-  if (status === "AFASTADO") return { status: "warn" as const, label: "Afastado" };
-  return null; // DESLIGADO — texto neutro
-}
 
 export function ColaboradoresTabela({ colaboradores }: { colaboradores: ColaboradorView[] }) {
   return (
@@ -56,14 +44,14 @@ export function ColaboradoresTabela({ colaboradores }: { colaboradores: Colabora
             {colaboradores.map((c) => {
               const ch = chip(c.status);
               return (
-                <TableRow key={c.id}>
+                <ClickableRow key={c.id} href={`/rh/colaborador/${c.id}`}>
                   <TableCell className="font-semibold">{c.nome}</TableCell>
                   <TableCell>{c.cargo}</TableCell>
                   <TableCell className="text-muted-foreground">{setorLabel[c.setor]}</TableCell>
                   <TableCell className="font-mono">{formatDate(new Date(c.dataAdmissao))}</TableCell>
                   <TableCell>{ch ? <StatusChip status={ch.status} label={ch.label} /> : <span className="text-xs text-muted-foreground">Desligado</span>}</TableCell>
-                  <TableCell>{c.status !== "DESLIGADO" && <StatusSelect id={c.id} status={c.status} />}</TableCell>
-                </TableRow>
+                  <TableCell onClick={(e) => e.stopPropagation()}>{c.status !== "DESLIGADO" && <StatusSelect id={c.id} status={c.status} />}</TableCell>
+                </ClickableRow>
               );
             })}
           </TableBody>
@@ -73,7 +61,7 @@ export function ColaboradoresTabela({ colaboradores }: { colaboradores: Colabora
   );
 }
 
-function StatusSelect({ id, status }: { id: string; status: ColaboradorView["status"] }) {
+export function StatusSelect({ id, status }: { id: string; status: ColaboradorView["status"] }) {
   async function mudar(novoStatus: string) {
     const fd = new FormData();
     fd.set("id", id);
