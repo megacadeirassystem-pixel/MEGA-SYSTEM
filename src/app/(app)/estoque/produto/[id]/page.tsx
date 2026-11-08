@@ -49,7 +49,7 @@ async function ProdutoDetail({ params }: { params: Promise<{ id: string }> }) {
         <ArrowLeft className="size-3.5" /> Estoque
       </Link>
 
-      <div className="mb-5 flex items-end justify-between gap-5">
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end sm:gap-5">
         <div>
           <div className="text-[11px] font-medium text-muted-foreground">{produto.linha.toUpperCase()}</div>
           <h1 className="text-xl font-bold tracking-tight">{produto.nome}</h1>
