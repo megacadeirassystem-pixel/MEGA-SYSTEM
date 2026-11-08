@@ -58,75 +58,107 @@ async function ProdutoDetail({ params }: { params: Promise<{ id: string }> }) {
           </p>
         </div>
         {produto.bom.length > 0 && (
-          <div className="text-right">
-            <div className="text-[10.5px] font-medium text-muted-foreground">DÁ PRA MONTAR HOJE</div>
-            <div className="font-mono text-2xl font-bold">
-              {unidadesPossiveis === Infinity ? "—" : unidadesPossiveis} un
-            </div>
-          </div>
-        )}
-      </div>
+        <>
+          <div className="mb-5 space-y-3 md:hidden">
+            {produto.bom.map((b) => {
+              const saldo = Number(b.item.estoque?.saldoAtual ?? 0);
+              const reservado = Number(b.item.estoque?.reservado ?? 0);
+              const minimo = Number(b.item.estoqueMinimo);
+              const disponivel = saldo - reservado;
+              const { status, label } = statusEstoque(disponivel, minimo);
 
-      {produto.bom.length > 0 && (
-        <div className="mb-5 overflow-hidden rounded-xl border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead className="text-right">Por unidade</TableHead>
-                <TableHead className="text-right">Disponível</TableHead>
-                <TableHead>Fornecedor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {produto.bom.map((b) => {
-                const saldo = Number(b.item.estoque?.saldoAtual ?? 0);
-                const reservado = Number(b.item.estoque?.reservado ?? 0);
-                const minimo = Number(b.item.estoqueMinimo);
-                const disponivel = saldo - reservado;
-                const { status, label } = statusEstoque(disponivel, minimo);
-
-                return (
-                  <TableRow key={b.id}>
-                    <TableCell className="font-semibold">
-                      <Link href={`/estoque/item/${b.itemId}`} className="hover:text-[var(--signal)]">
+              return (
+                <div key={b.id} className="rounded-xl border bg-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link href={`/estoque/item/${b.itemId}`} className="text-sm font-semibold hover:text-[var(--signal)]">
                         {b.item.nome}
                       </Link>
-                      <div className="font-mono text-[10.5px] font-normal text-muted-foreground">{b.item.sku}</div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-muted-foreground">
-                      {Number(b.quantidadePorUnidade)} {b.item.unidadeMedida}
-                      {Number(b.fatorPerda) > 1 && (
-                        <span className="ml-1 text-[10px]">(+{((Number(b.fatorPerda) - 1) * 100).toFixed(0)}% perda)</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-semibold">
-                      {disponivel} {b.item.unidadeMedida}
-                    </TableCell>
-                    <TableCell>{b.item.fornecedorPrincipal?.nome ?? "—"}</TableCell>
-                    <TableCell>
-                      <StatusChip status={status} label={label} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/estoque/item/${b.itemId}`}>
-                          <ChevronRight className="size-3.5 text-muted-foreground" />
-                        </Link>
-                        <form action={removeBomItemWithId.bind(null, b.id)}>
-                          <button type="submit" title="Remover da receita" className="text-muted-foreground hover:text-[var(--crit)]">
-                            <X className="size-3.5" />
-                          </button>
-                        </form>
+                      <div className="mt-0.5 font-mono text-[10.5px] text-muted-foreground">{b.item.sku}</div>
+                    </div>
+                    <StatusChip status={status} label={label} />
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 border-t pt-3">
+                    <div>
+                      <div className="text-[10px] text-muted-foreground">Consumo por cadeira</div>
+                      <div className="mt-0.5 text-sm font-semibold tabular-nums">
+                        {Number(b.quantidadePorUnidade)} {b.item.unidadeMedida}
+                        {Number(b.fatorPerda) > 1 && <span className="ml-1 text-[10px] font-normal text-muted-foreground">(+{((Number(b.fatorPerda) - 1) * 100).toFixed(0)}% perda)</span>}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-muted-foreground">Disponível</div>
+                      <div className="mt-0.5 text-sm font-semibold tabular-nums">{disponivel} {b.item.unidadeMedida}</div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-[10px] text-muted-foreground">Fornecedor</div>
+                      <div className="mt-0.5 truncate text-xs">{b.item.fornecedorPrincipal?.nome ?? "—"}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t pt-3">
+                    <Link href={`/estoque/item/${b.itemId}`} className="text-xs font-medium text-[var(--signal)]">Ver item</Link>
+                    <form action={removeBomItemWithId.bind(null, b.id)}>
+                      <button type="submit" className="min-h-10 rounded-md px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-[var(--crit)]">
+                        Remover da receita
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mb-5 hidden overflow-hidden rounded-xl border bg-card md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item</TableHead>
+                  <TableHead className="text-right">Por unidade</TableHead>
+                  <TableHead className="text-right">Disponível</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-16" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {produto.bom.map((b) => {
+                  const saldo = Number(b.item.estoque?.saldoAtual ?? 0);
+                  const reservado = Number(b.item.estoque?.reservado ?? 0);
+                  const minimo = Number(b.item.estoqueMinimo);
+                  const disponivel = saldo - reservado;
+                  const { status, label } = statusEstoque(disponivel, minimo);
+
+                  return (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-semibold">
+                        <Link href={`/estoque/item/${b.itemId}`} className="hover:text-[var(--signal)]">
+                          {b.item.nome}
+                        </Link>
+                        <div className="font-mono text-[10.5px] font-normal text-muted-foreground">{b.item.sku}</div>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-muted-foreground">
+                        {Number(b.quantidadePorUnidade)} {b.item.unidadeMedida}
+                        {Number(b.fatorPerda) > 1 && (
+                          <span className="ml-1 text-[10px]">(+{((Number(b.fatorPerda) - 1) * 100).toFixed(0)}% perda)</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold">{disponivel} {b.item.unidadeMedida}</TableCell>
+                      <TableCell>{b.item.fornecedorPrincipal?.nome ?? "—"}</TableCell>
+                      <TableCell><StatusChip status={status} label={label} /></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/estoque/item/${b.itemId}`}><ChevronRight className="size-3.5 text-muted-foreground" /></Link>
+                          <form action={removeBomItemWithId.bind(null, b.id)}>
+                            <button type="submit" title="Remover da receita" className="text-muted-foreground hover:text-[var(--crit)]"><X className="size-3.5" /></button>
+                          </form>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
 
       {produto.bom.length === 0 && (
