@@ -16,6 +16,47 @@ async function EstoqueGeralTable() {
   });
 
   return (
+    <>
+      <div className="space-y-3 md:hidden">
+        {itens.map((item) => {
+          const saldo = Number(item.estoque?.saldoAtual ?? 0);
+          const reservado = Number(item.estoque?.reservado ?? 0);
+          const minimo = Number(item.estoqueMinimo);
+          const disponivel = saldo - reservado;
+          const { status, label } = statusEstoque(disponivel, minimo);
+
+          return (
+            <Link key={item.id} href={`/estoque/item/${item.id}`} className="block rounded-xl border bg-card p-4 transition-colors active:bg-accent">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{item.nome}</div>
+                  <div className="mt-0.5 font-mono text-[11px] text-muted-foreground">{item.sku}</div>
+                </div>
+                <StatusChip status={status} label={label} />
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-3">
+                <div>
+                  <div className="text-[10px] text-muted-foreground">Saldo</div>
+                  <div className="mt-0.5 text-sm font-semibold tabular-nums">{saldo} <span className="text-[10px] font-normal text-muted-foreground">{item.unidadeMedida}</span></div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground">Reservado</div>
+                  <div className="mt-0.5 text-sm font-semibold tabular-nums">{reservado}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-muted-foreground">Disponível</div>
+                  <div className="mt-0.5 text-sm font-semibold tabular-nums">{disponivel}</div>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                <span className="truncate">{item.tipo === "MATERIA_PRIMA" ? "Matéria-prima" : "Componente comprado"}</span>
+                <span className="shrink-0">Mínimo: {minimo}</span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+      <div className="hidden md:block">
     <Table>
       <TableHeader>
         <TableRow>
@@ -67,6 +108,8 @@ async function EstoqueGeralTable() {
         })}
       </TableBody>
     </Table>
+      </div>
+    </>
   );
 }
 
@@ -77,6 +120,27 @@ async function EstoquePorProdutoTable() {
   });
 
   return (
+    <>
+      <div className="space-y-3 md:hidden">
+        {produtos.map((produto) => (
+          <Link key={produto.id} href={`/estoque/produto/${produto.id}`} className="flex min-h-16 items-center justify-between gap-3 rounded-xl border bg-card p-4 transition-colors active:bg-accent">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold">{produto.nome}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{produto.linha}</div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-lg font-semibold tabular-nums">{produto.bom.length}</div>
+              <div className="text-[10px] text-muted-foreground">componentes</div>
+            </div>
+          </Link>
+        ))}
+        {produtos.length === 0 && (
+          <div className="rounded-xl border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+            Nenhum produto com BOM cadastrada ainda.
+          </div>
+        )}
+      </div>
+      <div className="hidden md:block">
     <Table>
       <TableHeader>
         <TableRow>
@@ -108,6 +172,8 @@ async function EstoquePorProdutoTable() {
         )}
       </TableBody>
     </Table>
+      </div>
+    </>
   );
 }
 
@@ -128,7 +194,7 @@ export default function EstoquePage() {
         title="Estoque"
         description="Saldo geral por item, ou navegue por cadeira pra ver só o que ela usa — tudo direto do banco."
         action={
-          <Link href="/estoque/itens/novo" className={buttonVariants()}>
+          <Link href="/estoque/itens/novo" className={buttonVariants({ className: "w-full sm:w-auto" })}>
             <Plus /> Novo item
           </Link>
         }
