@@ -178,6 +178,7 @@ model Pedido {
   movimentos     MovimentoEstoque[]
   pedidosCompra  PedidoCompra[] // PCs gerados por falta de material pra este pedido
   contasReceber  ContaReceber[]
+  notasFiscais   NotaFiscal[]
 
   @@map("pedidos")
 }
@@ -371,4 +372,110 @@ model ConciliacaoBancaria {
   itens           Json
 
   @@map("conciliacoes_bancarias")
+}
+
+// ========================================================================
+// FISCAL — emissão de NF-e
+// ========================================================================
+
+enum StatusNotaFiscal {
+  AUTORIZADA
+  CANCELADA
+  PENDENTE
+}
+
+// Chave de acesso e autorização são simuladas — emitir NF-e de verdade exige certificado
+// digital A1/A3 e um provedor (Focus NFe, NFe.io etc.) contratado junto à SEFAZ; isso aqui
+// é o controle interno (numeração, status, histórico), não uma integração fiscal real.
+model NotaFiscal {
+  id                 String           @id @default(cuid())
+  numero             Int              @unique
+  serie              String           @default("1")
+  chaveAcesso        String           @unique
+  pedidoId           String?
+  pedido             Pedido?          @relation(fields: [pedidoId], references: [id])
+  // Texto livre (ex.: "MC-0847") — Comercial/Compras ainda não geram Pedido real no banco,
+  // então por enquanto a NF-e referencia o código pelo nome, não por uma FK de verdade.
+  referenciaPedido   String?
+  clienteNome        String
+  valor              Decimal          @db.Decimal(12, 2)
+  status             StatusNotaFiscal @default(AUTORIZADA)
+  dataEmissao        DateTime         @default(now())
+  dataCancelamento   DateTime?
+  motivoCancelamento String?
+
+  @@map("notas_fiscais")
+}
+
+// ========================================================================
+// RH — colaboradores, ponto/escala e comissão de vendedores
+// ========================================================================
+
+enum SetorColaborador {
+  FABRICA
+  COMERCIAL
+  LOGISTICA
+  ADMINISTRACAO
+}
+
+enum StatusColaborador {
+  ATIVO
+  EXPERIENCIA
+  AFASTADO
+  DESLIGADO
+}
+
+model Colaborador {
+  id               String            @id @default(cuid())
+  nome             String
+  cargo            String
+  setor            SetorColaborador
+  telefone         String?
+  salario          Decimal?          @db.Decimal(10, 2)
+  dataAdmissao     DateTime
+  dataDesligamento DateTime?
+  status           StatusColaborador @default(EXPERIENCIA)
+  criadoEm         DateTime          @default(now())
+
+  comissoes Comissao[]
+  pontos    RegistroPonto[]
+
+  @@map("colaboradores")
+}
+
+// Uma comissão por vendedor/mês — valorComissao é calculado (valorVendido * percentual) na
+// criação, mas fica gravado (não recalculado on-the-fly) pra não mudar o histórico se o
+// percentual padrão for revisto depois.
+model Comissao {
+  id            String      @id @default(cuid())
+  colaboradorId String
+  colaborador   Colaborador @relation(fields: [colaboradorId], references: [id])
+  mesReferencia DateTime
+  valorVendido  Decimal     @db.Decimal(12, 2)
+  percentual    Decimal     @db.Decimal(5, 2)
+  valorComissao Decimal     @db.Decimal(12, 2)
+  pago          Boolean     @default(false)
+  dataPagamento DateTime?
+  criadoEm      DateTime    @default(now())
+
+  @@unique([colaboradorId, mesReferencia])
+  @@map("comissoes")
+}
+
+// Resumo mensal, não ponto eletrônico batido no relógio — bate com o que uma tela de RH dentro
+// de um ERP de gestão precisa mostrar (dias trabalhados/faltas/horas extras do mês), não com um
+// quiosque de marcação física, que é outro produto.
+model RegistroPonto {
+  id              String      @id @default(cuid())
+  colaboradorId   String
+  colaborador     Colaborador @relation(fields: [colaboradorId], references: [id])
+  mesReferencia   DateTime
+  diasTrabalhados Int
+  faltas          Int         @default(0)
+  horasExtras     Decimal     @default(0) @db.Decimal(6, 2)
+  observacao      String?
+  criadoEm        DateTime    @default(now())
+
+  @@unique([colaboradorId, mesReferencia])
+  @@map("registros_ponto")
 }

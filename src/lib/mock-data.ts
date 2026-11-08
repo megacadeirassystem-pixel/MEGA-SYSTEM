@@ -163,22 +163,3 @@ export const chamados = [
   { chamado: "PV-0085", cliente: "Memorial América Latina", produto: "Hoteleira c/ Prancheta Fixa", tipo: "Garantia", abertoHa: "12 dias", status: "ok" as Status, statusLabel: "Resolvido" },
 ];
 
-export const notasFiscais = [
-  { numero: "000.189", pedido: "MC-0846", cliente: "Igreja Batista Central", valor: "R$ 18.400", emissao: "07/11", status: "ok" as Status, statusLabel: "Autorizada" },
-  { numero: "000.188", pedido: "MC-0845", cliente: "Hotel Blue Tree", valor: "R$ 67.200", emissao: "05/11", status: "ok" as Status, statusLabel: "Autorizada" },
-  { numero: "—", pedido: "MC-0843", cliente: "Memorial América Latina", valor: "R$ 134.000", emissao: "—", status: "warn" as Status, statusLabel: "Aguardando expedição" },
-  { numero: "—", pedido: "MC-0841", cliente: "G. Soneto", valor: "R$ 51.300", emissao: "—", status: "warn" as Status, statusLabel: "Pendente" },
-];
-
-export const colaboradores = [
-  { nome: "Carla Souza", cargo: "Vendedora sênior", setor: "Comercial", admissao: "03/2022", status: "ok" as Status, statusLabel: "Ativo" },
-  { nome: "Marcos Lima", cargo: "Vendedor", setor: "Comercial", admissao: "08/2023", status: "ok" as Status, statusLabel: "Ativo" },
-  { nome: "Devair Nunes", cargo: "Motorista", setor: "Logística", admissao: "01/2021", status: "ok" as Status, statusLabel: "Ativo" },
-  { nome: "Josiel Pires", cargo: "Operador CNC", setor: "Fábrica", admissao: "06/2020", status: "ok" as Status, statusLabel: "Ativo" },
-  { nome: "Elaine Ferraz", cargo: "Costureira", setor: "Fábrica", admissao: "11/2026", status: "warn" as Status, statusLabel: "Experiência" },
-];
-
-export const comissoes = [
-  { vendedor: "Carla Souza", pedidos: 4, valorVendido: "R$ 109.000", comissao: "4%", aReceber: "R$ 4.360" },
-  { vendedor: "Marcos Lima", pedidos: 2, valorVendido: "R$ 32.600", comissao: "4%", aReceber: "R$ 1.304" },
-];
