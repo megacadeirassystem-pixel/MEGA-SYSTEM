@@ -50,7 +50,9 @@ export function ColaboradoresTabela({ colaboradores }: { colaboradores: Colabora
                   <TableCell className="text-muted-foreground">{setorLabel[c.setor]}</TableCell>
                   <TableCell className="font-mono">{formatDate(new Date(c.dataAdmissao))}</TableCell>
                   <TableCell>{ch ? <StatusChip status={ch.status} label={ch.label} /> : <span className="text-xs text-muted-foreground">Desligado</span>}</TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>{c.status !== "DESLIGADO" && <StatusSelect id={c.id} status={c.status} />}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <StatusSelect id={c.id} status={c.status} />
+                  </TableCell>
                 </ClickableRow>
               );
             })}

@@ -30,7 +30,7 @@ export default async function ContaPagarDetalhePage({ params }: { params: Promis
 
   const valor = Number(conta.valor);
   const valorPago = Number(conta.valorPago);
-  const saldo = valor - valorPago;
+  const saldo = valor - valorPago - Number(conta.desconto);
   const chip = statusTituloChip(conta.status, conta.vencimento.toISOString());
   const podeExcluir = valorPago === 0;
   const aberto = conta.status === "ABERTO" || conta.status === "PARCIAL";

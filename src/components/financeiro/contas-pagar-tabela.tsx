@@ -20,6 +20,7 @@ export type ContaPagarView = {
   planoContas: string | null;
   valor: number;
   valorPago: number;
+  desconto: number;
   vencimento: string;
   status: "ABERTO" | "PARCIAL" | "PAGO" | "VENCIDO" | "CANCELADO";
 };
@@ -65,7 +66,7 @@ export function ContasPagarTabela({
             )}
             {contas.map((c) => {
               const chip = statusTituloChip(c.status, c.vencimento);
-              const saldo = c.valor - c.valorPago;
+              const saldo = c.valor - c.valorPago - c.desconto;
               return (
                 <ClickableRow key={c.id} href={`/financeiro/pagar/${c.id}`}>
                   <TableCell className="font-semibold">{c.descricao}</TableCell>
