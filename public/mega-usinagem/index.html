@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Usinagem · Mega System (local)</title>
+  <script>
+    if (new URLSearchParams(location.search).get("embedded") === "1") {
+      document.documentElement.classList.add("mega-embedded");
+    }
+  </script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="bridges.css">
   <link rel="stylesheet" href="settings.css">
