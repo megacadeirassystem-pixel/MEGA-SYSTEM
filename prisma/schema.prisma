@@ -121,6 +121,7 @@ model EstoqueItem {
 }
 
 enum TipoMovimento {
+  ENTRADA_PRODUCAO // peças produzidas e confirmadas pelo operador
   ENTRADA_COMPRA // recebimento de um pedido de compra
   RESERVA // pedido confirmado: reserva soft, não sai do saldo físico ainda
   LIBERACAO_RESERVA // produção iniciou/concluiu: a reserva vira saída real (ou é liberada sem uso)
@@ -136,6 +137,8 @@ model MovimentoEstoque {
   id                  String        @id @default(cuid())
   itemId              String
   tipo                TipoMovimento
+  cicloUsinagemId      String?
+  cicloUsinagem        CicloUsinagem? @relation(fields: [cicloUsinagemId], references: [id])
   quantidade          Decimal       @db.Decimal(12, 3) // sempre positiva; o "tipo" diz se soma ou subtrai do saldo
   quantidadePlanejada Decimal?      @db.Decimal(12, 3) // só em SAIDA_PRODUCAO: o que a BOM previa, pra medir desperdício
   pedidoId            String?
@@ -150,6 +153,7 @@ model MovimentoEstoque {
   pedidoCompra  PedidoCompra?  @relation(fields: [pedidoCompraId], references: [id])
 
   @@index([itemId, criadoEm])
+  @@index([cicloUsinagemId])
   @@map("movimentos_estoque")
 }
 
@@ -478,4 +482,15 @@ model RegistroPonto {
 
   @@unique([colaboradorId, mesReferencia])
   @@map("registros_ponto")
+}
+
+model CicloUsinagem {
+  id           String   @id
+  operadorId   String
+  hash         String
+  plano        Json
+  confirmadoEm DateTime @default(now())
+  movimentos   MovimentoEstoque[]
+
+  @@map("ciclos_usinagem")
 }

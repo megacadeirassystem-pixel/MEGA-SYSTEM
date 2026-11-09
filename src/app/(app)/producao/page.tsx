@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, ChevronRight, ClipboardList, DraftingCompass, Factory, PackageCheck, Play, RotateCcw } from "lucide-react";
@@ -24,42 +23,9 @@ function makeStages(qty: number): Stage[] {
   return stageSeed.map((s) => ({ ...s, checks: s.checks.map((c) => ({ ...c })), planned: qty, completed: 0, quantityConfirmed: false }));
 }
 const initialOrders: Order[] = [
-  { code: "DEMO-0001", pedido: "DEMONSTRAÇÃO", client: "Produto cadastrado no MEGA SYSTEM", product: "Jerusalém Ouro", sku: "JER-OURO", quantity: 10, priority: "Normal", materials: [
-    { sku: "CP-ESPUMA-D45", name: "Espuma injetada D45", unit: "un", perUnit: 1, loss: 1 },
-    { sku: "CP-PARAFUSO-M6", name: "Parafuso M6x40", unit: "un", perUnit: 8, loss: 1.02 },
-    { sku: "CP-PE-PLAST", name: "Pé plástico injetado", unit: "un", perUnit: 4, loss: 1 },
-    { sku: "CP-TECIDO-JS", name: "Tecido J-Serrano", unit: "m²", perUnit: 0.85, loss: 1.08 },
-    { sku: "MP-ACO-78", name: "Tubo de aço carbono 7/8", unit: "m", perUnit: 1.2, loss: 1.05 },
-  ], stages: makeStages(10) },
-];se client";
-
-import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, ChevronRight, ClipboardList, DraftingCompass, Factory, PackageCheck, Play, RotateCcw } from "lucide-react";
-import { PageHeader } from "@/components/mega/page-header";
-
-type StageKey = "SERRALHERIA" | "PINTURA" | "USINAGEM" | "TAPECARIA" | "COSTURA" | "MONTAGEM";
-type CheckItem = { label: string; done: boolean };
-type Material = { sku: string; name: string; unit: string; perUnit: number; loss: number };
-type Stage = { key: StageKey; name: string; description: string; checks: CheckItem[]; planned: number; completed: number; quantityConfirmed: boolean; };
-type Order = { code: string; pedido: string; client: string; product: string; sku: string; quantity: number; priority: string; materials: Material[]; stages: Stage[] };
-
-const stageSeed: Omit<Stage, "planned" | "completed" | "quantityConfirmed">[] = [
-  { key: "SERRALHERIA", name: "Serralheria", description: "Corte, preparação e solda das estruturas metálicas.", checks: [{ label: "Separar tubos e perfis", done: false }, { label: "Cortar conforme plano de corte", done: false }, { label: "Soldar estruturas", done: false }, { label: "Conferir esquadro e medidas", done: false }, { label: "Liberar lote para pintura", done: false }] },
-  { key: "PINTURA", name: "Pintura", description: "Preparação de superfície e acabamento da estrutura.", checks: [{ label: "Receber e conferir estruturas", done: false }, { label: "Preparar superfície", done: false }, { label: "Aplicar pintura", done: false }, { label: "Inspecionar acabamento", done: false }, { label: "Liberar peças", done: false }] },
-  { key: "USINAGEM", name: "Usinagem", description: "Separação dos materiais, execução CNC e confirmação da quantidade produzida.", checks: [{ label: "Separar chapas e materiais", done: false }, { label: "EXECUTAR USINAGEM CNC", done: false }, { label: "Conferir peças usinadas", done: false }] },
-  { key: "TAPECARIA", name: "Tapeçaria", description: "Preparação e montagem dos conjuntos estofados.", checks: [{ label: "Separar espumas e componentes", done: false }, { label: "Preparar conjuntos", done: false }, { label: "Conferir medidas e padrão", done: false }, { label: "Liberar para costura/montagem", done: false }] },
-  { key: "COSTURA", name: "Costura", description: "Confecção e inspeção dos revestimentos.", checks: [{ label: "Separar tecidos e insumos", done: false }, { label: "Cortar revestimentos", done: false }, { label: "Costurar capas", done: false }, { label: "Inspecionar costuras", done: false }] },
-  { key: "MONTAGEM", name: "Montagem", description: "Montagem final, inspeção e liberação do produto acabado.", checks: [{ label: "Conferir todos os componentes", done: false }, { label: "Montar produto", done: false }, { label: "Realizar inspeção final", done: false }, { label: "Embalar e identificar", done: false }, { label: "Liberar produto acabado para o Dashboard", done: false }] },
-];
-
-function makeStages(qty: number): Stage[] {
-  return stageSeed.map((s) => ({ ...s, checks: s.checks.map((c) => ({ ...c })), planned: qty, completed: 0, quantityConfirmed: false }));
-}
-const initialOrders: Order[] = [
-  { code: "OF-0412", pedido: "MC-0847", client: "Universidade Mackenzie", product: "Cadeira Universitária", quantity: 47, priority: "Alta", stages: makeStages(47) },
-  { code: "OF-0411", pedido: "MC-0845", client: "Hotel Blue Tree", product: "Longarina", quantity: 32, priority: "Normal", stages: makeStages(32) },
-  { code: "OF-0409", pedido: "MC-0843", client: "Memorial América Latina", product: "Cadeira Auditório", quantity: 28, priority: "Atenção", stages: makeStages(28) },
+  { code: "OF-0412", pedido: "MC-0847", client: "Universidade Mackenzie", product: "Cadeira Universitária", sku: "CAD-UNI", quantity: 47, priority: "Alta", materials: [], stages: makeStages(47) },
+  { code: "OF-0411", pedido: "MC-0845", client: "Hotel Blue Tree", product: "Longarina", sku: "LONG", quantity: 32, priority: "Normal", materials: [], stages: makeStages(32) },
+  { code: "OF-0409", pedido: "MC-0843", client: "Memorial América Latina", product: "Cadeira Auditório", sku: "CAD-AUD", quantity: 28, priority: "Atenção", materials: [], stages: makeStages(28) },
 ];
 
 export default function ProducaoPage() {
