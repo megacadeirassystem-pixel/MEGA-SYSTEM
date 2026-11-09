@@ -1,0 +1,8 @@
+.legend .ponte { background: #e5a100; }
+.bridge-panel { border-top: 1px solid #eceef1; margin-top: 24px; padding-top: 2px; }
+.bridge-panel h3 { margin: 19px 0 10px; }
+.bridge-panel button[aria-pressed="true"] { background: #fff4d1; border-color: #e5a100; color: #785000; }
+.bridges-list { margin: 10px 0 14px; display: grid; gap: 6px; }
+.bridge-row { display: grid; grid-template-columns: minmax(75px, 1fr) 74px auto; align-items: center; gap: 5px; border: 1px solid #eceef1; border-radius: 7px; padding: 5px; color: #596475; font-size: 11px; }
+.bridge-row input { margin: 0; padding: 6px; min-width: 0; font-size: 11px; }
+.editor-card .bridge-row button { width: auto; margin: 0; padding: 7px; font-size: 11px; }

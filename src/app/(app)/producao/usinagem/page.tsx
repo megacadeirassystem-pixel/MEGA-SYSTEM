@@ -1,40 +1,48 @@
-import Link from "next/link";
-import { ArrowLeft, DraftingCompass } from "lucide-react";
-import { PageHeader } from "@/components/mega/page-header";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { podeConfirmarUsinagem } from "@/lib/usinagem-acesso";
 
-export default function UsinagemPage() {
+async function entrar(form: FormData) {
+  "use server";
+  const email = form.get("email");
+  const password = form.get("password");
+  if (typeof email !== "string" || typeof password !== "string") {
+    redirect("/producao/usinagem?login=erro");
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  redirect(error ? "/producao/usinagem?login=erro" : "/producao/usinagem");
+}
+
+type Props = { searchParams: Promise<{ login?: string }> };
+
+export default function UsinagemPage(props: Props) {
+  return <Suspense fallback={<p>Carregando Usinagem…</p>}><ModuloUsinagem {...props} /></Suspense>;
+}
+
+async function ModuloUsinagem({ searchParams }: Props) {
+  const loginDisponivel = Boolean(process.env.USINAGEM_OPERADORES?.trim() &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const user = loginDisponivel ? (await (await createClient()).auth.getUser()).data.user : null;
+  const integrada = Boolean(user && podeConfirmarUsinagem(user.id));
+  const { login } = await searchParams;
+
   return (
     <div>
-      <PageHeader
-        eyebrow="PRODUÇÃO"
-        title="Usinagem"
-        description="Espaço reservado para desenvolvimento."
+      {loginDisponivel && !user && (
+        <form action={entrar} className="mb-3 flex flex-wrap items-center gap-2">
+          <input aria-label="E-mail do operador" name="email" type="email" placeholder="E-mail do operador" autoComplete="username" className="rounded-md border px-3 py-2" required />
+          <input aria-label="Senha" name="password" type="password" placeholder="Senha" autoComplete="current-password" className="rounded-md border px-3 py-2" required />
+          <button className="rounded-md border px-3 py-2" type="submit">Entrar para confirmar produção</button>
+          {login === "erro" && <p role="alert">Não foi possível entrar com essas credenciais.</p>}
+        </form>
+      )}
+      <iframe
+        title="Mega Usinagem"
+        src={integrada ? "/mega-usinagem/index.html?integrado=1" : "/mega-usinagem/index.html"}
+        className="h-[calc(100vh-8rem)] min-h-[540px] w-full rounded-xl border"
       />
-
-      <section className="flex min-h-[360px] flex-col items-center justify-center rounded-xl border bg-card px-6 py-12 text-center">
-        <div className="mb-5 flex size-14 items-center justify-center rounded-xl bg-[var(--signal-dim)] text-[var(--signal)]">
-          <DraftingCompass className="size-7" />
-        </div>
-
-        <h2 className="text-xl font-bold tracking-tight">
-          Aqui o Felipe vai projetar e construir.
-        </h2>
-        <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
-          Este espaço será desenvolvido pelo Felipe. Em breve, teremos aqui a ferramenta independente de usinagem.
-        </p>
-
-        <div className="mt-8 rounded-lg border border-dashed px-4 py-2.5 text-[11px] font-semibold tracking-[0.12em] text-muted-foreground">
-          ESPAÇO RESERVADO PARA DESENVOLVIMENTO
-        </div>
-
-        <Link
-          href="/"
-          className="mt-8 inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-        >
-          <ArrowLeft className="mr-2 size-4" />
-          Voltar para o Mega System
-        </Link>
-      </section>
     </div>
   );
 }

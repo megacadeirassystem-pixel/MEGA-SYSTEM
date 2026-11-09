@@ -1,0 +1,33 @@
+.nesting-controls { display: grid; gap: 16px; }
+.nesting-controls label { margin-top: 12px; }
+.nesting-controls form > button, #nestingTapPanel > button { width: 100%; margin-top: 14px; }
+#nestingDrawing {
+  display: block;
+  width: 100%;
+  height: clamp(320px, 63vh, 700px);
+  margin-top: 16px;
+  border: 1px solid #edf0f4;
+  border-radius: 10px;
+  background: #f7f9fb;
+  touch-action: none;
+}
+.nesting-stock { fill: #fff7e9; stroke: #977b50; }
+.nesting-item { fill: none; stroke: #a33920; cursor: grab; }
+.nesting-item:active { cursor: grabbing; }
+.nesting-item path { stroke-width: 2; vector-effect: non-scaling-stroke; }
+.nesting-item path:hover { stroke: #e25023; }
+.nesting-stock { vector-effect: non-scaling-stroke; }
+#nestingItems { list-style: none; padding: 0; margin: 14px 0 0; }
+#nestingItems:empty { display: none; }
+#nestingItems li { display: flex; gap: 8px; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding: 8px 0; overflow-wrap: anywhere; }
+#nestingItems input { width: 75px; flex: 0 0 75px; margin: 0; }
+
+.nesting-toolbar { margin-top: 14px; align-items: center; }
+.nesting-toggle { display: flex; gap: 6px; align-items: center; }
+.nesting-toggle input { width: auto; margin: 0; }
+.nesting-toolbar [aria-pressed="true"] { background: #fae9e3; border-color: #d44942; }
+.nesting-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(120px,1fr)); gap: 12px; padding: 14px 0; }
+.nesting-summary strong { display: block; margin-top: 4px; }
+.nesting-simulation { border-top: 1px solid #e1e2e6; margin-top: 8px; }
+.nesting-simulation .toolbar { align-items: end; }
+.nesting-simulation input[type="range"] { padding: 0; margin: 14px 0; }
