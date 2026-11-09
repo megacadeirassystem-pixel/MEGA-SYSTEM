@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usinagem · Mega System (local)</title>
+  <script>
+    if (new URLSearchParams(location.search).get("embedded") === "1") {
+      document.documentElement.classList.add("mega-embedded");
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="bridges.css">
+  <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="nesting.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-icon">M</span><strong>MEGA<span> SYSTEM</span></strong></div>
+      <nav aria-label="Navegação local">
+        <p class="nav-caption">OPERAÇÃO</p>
+        <div class="nav-item">▦ &nbsp; Produção</div>
+        <div class="nav-item active">⌁ &nbsp; Usinagem</div>
+      </nav>
+      <div class="sidebar-foot">Protótipo local<br>Independente do ControlCorte</div>
+    </aside>
+    <div class="content">
+      <header class="topbar"><span>Mega System <span class="slash">/</span> Produção <span class="slash">/</span> <strong id="localPageTitle">Usinagem</strong></span><span class="pill"><i></i> Ambiente local</span></header>
+      <main id="machiningPage">
+        <div class="intro"><div><p class="eyebrow">PRODUÇÃO</p><h1>Usinagem</h1><p>Prepare desenhos e operações para a Router Mega.</p></div><div class="machine"><strong>Router Mega · TAP</strong><small id="machineSummary">Mesa: Y 2.780 × X 1.850 mm</small></div></div>
+        <div class="setup-actions">
+
+          <button id="openNesting" class="setup-action" type="button">Nesting</button>
+          <button id="openMachineDialog" class="setup-action" type="button" aria-haspopup="dialog" aria-controls="machineDialog">Configurações da Router Mega</button>
+          <button id="openToolsDialog" class="setup-action" type="button" aria-haspopup="dialog" aria-controls="toolsDialog">Biblioteca de ferramentas</button>
+          <button id="openImportsDialog" class="setup-action" type="button" aria-haspopup="dialog" aria-controls="importsDialog">Importações salvas</button>
+        </div>
+        <dialog id="machineDialog" class="setup-dialog" aria-labelledby="machineDialogTitle">
+          <div class="dialog-head"><h2 id="machineDialogTitle">Configurações da Router Mega</h2><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar configurações">×</button></div>
+          <div class="dialog-body"><div class="setup-fields">
+            <label>Rotação padrão (rpm)<input id="defaultRpm" type="number" min="1" step="1"></label><label>Avanço XY padrão (mm/seg)<input id="defaultXY" type="number" min="0.01" step="0.1"></label>
+            <label>Avanço Z padrão (mm/seg)<input id="defaultZ" type="number" min="0.01" step="0.1"></label>
+            <label>Espessura padrão da chapa (mm)<input id="defaultStockThickness" type="number" min="0.01" step="any"></label>
+          </div><button id="saveMachine" type="button" class="dark">Salvar configurações</button><p class="setup-note">Avanços são preenchidos em mm/seg.</p><p class="dialog-feedback" role="status"></p></div>
+        </dialog>
+        <dialog id="toolsDialog" class="setup-dialog" aria-labelledby="toolsDialogTitle">
+          <div class="dialog-head"><h2 id="toolsDialogTitle">Biblioteca de ferramentas</h2><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar ferramentas">×</button></div>
+          <div class="dialog-body"><div id="toolList" class="tool-list"></div>
+            <div class="setup-fields"><label>Nome da ferramenta<input id="toolName" type="text" placeholder="Ex.: Fresa Ø6 mm"></label><label>Diâmetro (mm)<input id="toolDiameter" type="number" min="0.01" step="0.01"></label><label>Altura útil (mm)<input id="toolHeight" type="number" min="0.01" step="0.1"></label></div>
+            <div class="inline-actions"><button id="saveTool" class="dark" type="button">Adicionar ferramenta</button><button id="cancelToolEdit" type="button" hidden>Cancelar edição</button></div><p class="dialog-feedback" role="status"></p>
+          </div>
+        </dialog>
+        <dialog id="importsDialog" class="setup-dialog" aria-labelledby="importsDialogTitle">
+          <div class="dialog-head"><h2 id="importsDialogTitle">Importações salvas</h2><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar importações">×</button></div>
+          <div class="dialog-body"><div class="save-grid"><label>Nome da importação<input id="importName" type="text" placeholder="Informe após importar"></label><button id="saveImport" class="dark" type="button" disabled>Salvar importação</button></div>
+            <div id="savedImports" class="saved-imports"></div>
+            <p class="setup-note">As importações ficam neste navegador. Faça uma cópia JSON para guardar fora dele.</p>
+            <div class="inline-actions"><button id="downloadBackup" type="button" disabled>Baixar cópia JSON</button><button id="loadBackup" type="button">Abrir cópia JSON</button><input id="backupFile" type="file" accept=".json" hidden></div><p class="dialog-feedback" role="status"></p>
+          </div>
+        </dialog>
+        <section class="card import-card">
+          <div><p class="eyebrow">01 / DESENHO</p><h2>Importar DXF</h2><p>As linhas entram sem operação. Selecione cada caminho e informe ferramenta e profundidade.</p></div>
+          <div class="import-actions">
+            <button id="importButton" class="primary" type="button">Selecionar DXF</button>
+            <div class="import-save">
+              <button id="updateSavedImport" class="dark" type="button" disabled>Salvar importação</button>
+              <span id="importSaveFeedback" role="status"></span>
+            </div>
+            <input id="dxfFile" type="file" accept=".dxf" hidden>
+          </div>
+          <div class="import-meta"><label>Arquivo <input id="fileName" type="text" value="Nenhum arquivo selecionado" readonly></label><label>Entidades <input id="entityCount" type="text" value="—" readonly></label></div>
+        </section>
+        <section id="workspace" class="workspace" hidden>
+          <div class="card drawing-card"><div class="card-head"><div><p class="eyebrow">02 / DESENHO 2D</p><h2>Selecione os caminhos</h2></div><div class="toolbar"><button id="undoButton" disabled type="button">Desfazer exclusão</button><button id="fitButton" type="button">Ajustar à tela</button></div></div><svg id="drawing" role="img" aria-label="Desenho DXF com seleção de linhas" xmlns="http://www.w3.org/2000/svg"></svg><div id="toolpathInfo" class="drawing-help">A linha do DXF é o contorno final. Macho passa por fora; Fêmea passa por dentro.</div><div class="drawing-help">Clique para selecionar · Arraste para selecionar as linhas que tocam a caixa · Ctrl + arraste para somar à seleção · Ctrl + clique para adicionar ou retirar uma linha · Delete: apagar · botão central: mover · rolagem: zoom.</div><div class="legend"><span><i class="none"></i> Contorno nominal</span><span><i class="macho"></i> Macho · faixa da fresa</span><span><i class="femea"></i> Fêmea · faixa da fresa</span><span><i class="ponte"></i> Ponte integral</span></div></div>
+          <aside class="card editor-card">
+            <p class="eyebrow">03 / USINAGEM</p><h2>Operação da seleção</h2>
+            <p id="selectionInfo">Selecione uma ou mais linhas no desenho.</p>
+            <label>Operação<select id="operation"><option value="">Escolher operação…</option><option value="macho">Macho · corte externo</option><option value="femea">Fêmea - Furo</option></select></label>
+            <label>Ferramenta ativa<select id="activeTool"></select></label>
+            <p id="activeToolHelp" class="note">Escolha a fresa antes de aplicar o caminho. A faixa colorida mostrará a largura removida.</p>
+            <label>Profundidade Z (mm)<input id="depth" type="number" min="0.01" step="0.01" placeholder="Até a espessura da chapa"></label>
+            <p id="depthHelp" class="note">O valor máximo é a espessura configurada na Router Mega.</p>
+            <button id="applyButton" class="dark" type="button">Aplicar à seleção</button>
+            <button id="clearButton" type="button">Limpar caminho de ferramenta</button>
+            <h3>Resumo do desenho</h3><div id="summary" class="summary"></div>
+            <p class="note">O arquivo TAP será habilitado após definirmos e validarmos o fluxo de corte desta nova ferramenta.</p>
+          </aside>
+        </section>
+        <section id="pathsCard" class="card paths-card" hidden><div class="card-head"><div><p class="eyebrow">04 / CAMINHOS</p><h2>Caminhos de ferramenta criados</h2></div></div><div id="pathsList" class="paths-list"></div></section>
+        <dialog id="pathDialog" class="setup-dialog" aria-labelledby="pathDialogTitle">
+          <div class="dialog-head"><h2 id="pathDialogTitle">Editar caminho de ferramenta</h2><div class="toolbar"><button id="savePathEdit" class="dark" type="button">Salvar edição</button><button class="dialog-close" type="button" data-close-dialog aria-label="Fechar edição">×</button></div></div>
+          <div class="dialog-body"><div class="setup-fields">
+            <label>Nome do caminho<input id="pathEditName" type="text"></label>
+            <label>Operação<select id="pathEditOperation"><option value="macho">Macho · corte externo</option><option value="femea">Fêmea - Furo</option></select></label>
+            <label>Ferramenta<select id="pathEditTool"></select></label>
+            <label>Profundidade Z (mm)<input id="pathEditDepth" type="number" min="0.01" step="0.01"></label>
+            <label>Rotação (rpm)<input id="pathEditRpm" type="number" min="1" step="1"></label>
+            <label>Avanço XY (mm/seg)<input id="pathEditXY" type="number" min="0.01" step="0.1"></label>
+            <label>Avanço Z (mm/seg)<input id="pathEditZ" type="number" min="0.01" step="0.1"></label>
+          </div><p class="dialog-feedback" role="status"></p></div>
+        </dialog>
+        <p id="status" class="status" role="status">Selecione um DXF para começar.</p>
+      </main>
+      <main id="nestingPage" hidden>
+        <div class="intro">
+          <div><p class="eyebrow">PRODUÇÃO</p><h1>Nesting</h1><p>Posicione os desenhos salvos na madeira disponível.</p></div>
+          <button id="nestingConfirmProduction" class="primary" type="button" hidden>OK · Confirmar chapa produzida</button>
+          <button id="backToMachining" type="button">Voltar à Usinagem</button>
+        </div>
+        <div class="workspace">
+          <div class="card nesting-preview">
+            <h2>Nesting na chapa</h2>
+            <p id="nestingHint">Informe as dimensões para começar.</p>
+            <label id="nestingSheetControl" hidden>Chapa em exibição<select id="nestingSheet"></select></label>
+            <div id="nestingToolbar" class="toolbar nesting-toolbar" hidden>
+              <button id="nestingStart" type="button" aria-pressed="false">Definir início pelo clique</button>
+              <button id="nestingOrder" type="button" aria-pressed="false">Ordenar pelo clique</button>
+              <button id="nestingAuto" type="button">Reorganizar automaticamente</button>
+              <label>Largura mínima da ponte (mm)<input id="nestingBridgeWidth" type="number" min="0.01" step="any" value="8"></label>
+              <button id="nestingBridge" type="button" aria-pressed="false">Marcar ponte entre peças</button>
+              <button id="nestingAutoBridges" type="button">Distribuir pontes automaticamente</button>
+              <button id="nestingUndoBridge" type="button" disabled>Desfazer última ponte</button>
+              <button id="nestingFit" type="button">Ajustar à tela</button>
+              <button id="nestingCutView" type="button" aria-pressed="false">Visualizar chapa cortada</button>
+              <label class="nesting-toggle"><input id="nestingShowPaths" type="checkbox" checked> Mostrar caminhos da ferramenta</label>
+            </div>
+            <p id="nestingStatus" class="status" role="status"></p>
+            <svg id="nestingDrawing" role="img" aria-label="Vista da madeira e dos desenhos posicionados" hidden></svg>
+            <div id="nestingSummary" class="nesting-summary" hidden></div>
+            <section id="nestingSimulation" class="nesting-simulation" hidden>
+              <h3>Tempo de corte estimado da chapa</h3>
+              <div id="nestingTimes" class="nesting-summary"></div>
+              <p class="setup-note">Inclui corte XY, descida em Z e deslocamento XY com a ferramenta levantada, inclusive retorno à origem. Tempos de troca, aceleração e retração não entram na estimativa.</p>
+              <div class="toolbar">
+                <button id="nestingPlay" class="dark" type="button">Iniciar simulação</button>
+                <button id="nestingPause" type="button">Pausar</button>
+                <button id="nestingReset" type="button">Reiniciar</button>
+                <label>Velocidade visual<select id="nestingSpeed"><option value="1">1×</option><option value="5">5×</option><option value="20">20×</option><option value="60">60×</option></select></label>
+              </div>
+              <input id="nestingProgress" type="range" min="0" max="1000" value="0" aria-label="Progresso da simulação">
+              <p id="nestingSimStatus" role="status"></p>
+            </section>
+          </div>
+          <div class="nesting-controls">
+            <form id="stockForm" class="card">
+              <p class="eyebrow">01 / MADEIRA</p>
+              <h2>Dimensões da madeira</h2>
+              <p id="nestingTableLimit"></p>
+              <label>Largura X (mm)<input id="stockX" type="number" min="0.01" step="any" required></label>
+              <label>Comprimento Y (mm)<input id="stockY" type="number" min="0.01" step="any" required></label>
+              <button class="dark" type="submit">Aplicar dimensões</button>
+            </form>
+            <section id="nestingTapPanel" class="card">
+              <h2>Arquivo TAP da chapa</h2>
+              <label>Nome do arquivo e SKU<input id="nestingTapName" type="text" readonly></label>
+              <p class="setup-note">Usa a profundidade Z salva em cada caminho, em uma passada por trecho.</p>
+              <button id="nestingSaveTap" class="dark" type="button" disabled>Salvar TAP</button>
+              <button id="nestingDownloadTap" type="button" disabled>Baixar TAP</button>
+              <button id="nestingOpenTaps" type="button" aria-haspopup="dialog" aria-controls="nestingSavedTaps">TAPs salvos</button>
+              <dialog id="nestingSavedTaps" class="setup-dialog" aria-labelledby="nestingSavedTapsTitle">
+                <div class="dialog-head"><h2 id="nestingSavedTapsTitle">TAPs salvos</h2><button class="dialog-close" data-close-dialog type="button" aria-label="Fechar TAPs salvos">×</button></div>
+                <div class="dialog-body">
+                  <div id="nestingSavedTapList" class="saved-imports"></div>
+                  <div id="nestingSavedTapDetails" hidden>
+                    <p id="nestingSavedTapSummary" class="setup-note"></p>
+                    <button id="nestingSavedTapDownload" type="button">Baixar este TAP</button>
+                    <textarea id="nestingSavedTapContent" aria-label="Conteúdo do TAP salvo" readonly rows="10" style="display:block;width:100%;margin-top:12px"></textarea>
+                  </div>
+                </div>
+              </dialog>
+              <p id="nestingTapInfo" role="status" class="setup-note"></p>
+            </section>
+            <form id="nestingInsertForm" class="card" hidden>
+              <p class="eyebrow">02 / DESENHOS</p>
+              <h2>Importações salvas</h2>
+              <label>Desenho<select id="nestingImport" required></select></label>
+              <label>Quantidade de cópias<input id="nestingQuantity" type="number" min="1" max="500" step="1" value="1" required></label>
+              <p id="nestingToolInfo" class="setup-note" role="status"></p>
+              <button class="dark" type="submit">Inserir na madeira</button>
+              <button id="nestingFill" type="button" disabled>Preencher chapa</button>
+              <ul id="nestingItems"></ul>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="vendor/dxf-core.js"></script>
+  <script src="vendor/dxf-import.js"></script>
+  <script src="vendor/clipper.js"></script>
+  <script src="tool-offset.js"></script>
+  <script src="bridge-path.js"></script>
+  <script src="storage.js"></script>
+  <script src="nesting-geometry.js"></script>
+  <script src="nesting-simulation.js"></script>
+  <script src="production-confirmation.js"></script>
+  <script src="nesting-tap.js"></script>
+  <script src="nesting.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

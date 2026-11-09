@@ -10,7 +10,7 @@ export function UsinagemHandoffCard() {
       <div className="flex-1">
         <h3 className="text-sm font-bold">Usinagem</h3>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Espaço reservado para o Felipe projetar e construir.
+          Abra o Nesting para preparar as chapas e os arquivos TAP.
         </p>
       </div>
       <Link
