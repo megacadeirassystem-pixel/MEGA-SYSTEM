@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/mega/page-header";
@@ -135,6 +136,8 @@ export default function ComercialPage() {
           </Dialog>
         }
       />
+
+      <div className="mb-4 flex justify-end"><Link href="/comercial/pedidos/novo" className={buttonVariants()}><Plus className="size-4" /> Novo pedido</Link></div>
 
       <div className="flex overflow-hidden rounded-xl border bg-card">
         {pipeline.map((lane, i) => {
