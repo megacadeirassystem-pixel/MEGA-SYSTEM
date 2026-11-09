@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
-
 async function authenticated() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
