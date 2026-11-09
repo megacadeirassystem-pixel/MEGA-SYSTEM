@@ -1,26 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, ChevronRight, Circle, ClipboardList, DraftingCompass, Factory, PackageCheck, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronRight, ClipboardList, DraftingCompass, Factory, PackageCheck, Play, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/mega/page-header";
 
 type StageKey = "SERRALHERIA" | "PINTURA" | "USINAGEM" | "TAPECARIA" | "COSTURA" | "MONTAGEM";
 type CheckItem = { label: string; done: boolean };
-type Stage = { key: StageKey; name: string; description: string; checks: CheckItem[]; planned: number; completed: number; };
+type Stage = { key: StageKey; name: string; description: string; checks: CheckItem[]; planned: number; completed: number; quantityConfirmed: boolean; };
 type Order = { code: string; pedido: string; client: string; product: string; quantity: number; priority: string; stages: Stage[] };
 
 const stageSeed: Omit<Stage, "planned" | "completed">[] = [
   { key: "SERRALHERIA", name: "Serralheria", description: "Corte, preparação e solda das estruturas metálicas.", checks: [{ label: "Separar tubos e perfis", done: false }, { label: "Cortar conforme plano de corte", done: false }, { label: "Soldar estruturas", done: false }, { label: "Conferir esquadro e medidas", done: false }, { label: "Liberar lote para pintura", done: false }] },
   { key: "PINTURA", name: "Pintura", description: "Preparação de superfície e acabamento da estrutura.", checks: [{ label: "Receber e conferir estruturas", done: false }, { label: "Preparar superfície", done: false }, { label: "Aplicar pintura", done: false }, { label: "Inspecionar acabamento", done: false }, { label: "Liberar peças", done: false }] },
-  { key: "USINAGEM", name: "Usinagem", description: "Plano de corte das chapas e produção de componentes CNC.", checks: [{ label: "Conferir plano e rendimento das chapas", done: false }, { label: "Separar chapas e materiais", done: false }, { label: "Executar usinagem CNC no módulo do Felipe", done: false }, { label: "Conferir peças usinadas", done: false }, { label: "Apontar quantidade produzida", done: false }] },
+  { key: "USINAGEM", name: "Usinagem", description: "Separação dos materiais, execução CNC e confirmação da quantidade produzida.", checks: [{ label: "Separar chapas e materiais", done: false }, { label: "EXECUTAR USINAGEM CNC", done: false }, { label: "Conferir peças usinadas", done: false }] },
   { key: "TAPECARIA", name: "Tapeçaria", description: "Preparação e montagem dos conjuntos estofados.", checks: [{ label: "Separar espumas e componentes", done: false }, { label: "Preparar conjuntos", done: false }, { label: "Conferir medidas e padrão", done: false }, { label: "Liberar para costura/montagem", done: false }] },
   { key: "COSTURA", name: "Costura", description: "Confecção e inspeção dos revestimentos.", checks: [{ label: "Separar tecidos e insumos", done: false }, { label: "Cortar revestimentos", done: false }, { label: "Costurar capas", done: false }, { label: "Inspecionar costuras", done: false }] },
   { key: "MONTAGEM", name: "Montagem", description: "Montagem final, inspeção e liberação do produto acabado.", checks: [{ label: "Conferir todos os componentes", done: false }, { label: "Montar produto", done: false }, { label: "Realizar inspeção final", done: false }, { label: "Embalar e identificar", done: false }, { label: "Liberar produto acabado para o Dashboard", done: false }] },
 ];
 
 function makeStages(qty: number): Stage[] {
-  return stageSeed.map((s) => ({ ...s, checks: s.checks.map((c) => ({ ...c })), planned: qty, completed: 0 }));
+  return stageSeed.map((s) => ({ ...s, checks: s.checks.map((c) => ({ ...c })), planned: qty, completed: 0, quantityConfirmed: false }));
 }
 const initialOrders: Order[] = [
   { code: "OF-0412", pedido: "MC-0847", client: "Universidade Mackenzie", product: "Cadeira Universitária", quantity: 47, priority: "Alta", stages: makeStages(47) },
@@ -34,6 +34,7 @@ export default function ProducaoPage() {
   const [activeStage, setActiveStage] = useState<StageKey>("SERRALHERIA");
   const [filter, setFilter] = useState("TODAS");
   const [demoNotice, setDemoNotice] = useState(true);
+  const [quantityDraft, setQuantityDraft] = useState("0");
   const selected = orders.find((o) => o.code === selectedId) ?? null;
   const totals = useMemo(() => ({ total: orders.length, running: orders.filter((o) => o.stages.some((s) => s.completed > 0)).length, released: orders.filter((o) => o.stages.every((s) => s.checks.every((c) => c.done))).length }), [orders]);
   const visible = orders.filter((o) => filter === "TODAS" || (filter === "EM PRODUÇÃO" ? o.stages.some((s) => s.completed > 0) : o.stages.every((s) => s.checks.every((c) => c.done))));
@@ -48,11 +49,18 @@ export default function ProducaoPage() {
     const safe = Math.max(0, Math.min(selected.quantity, Math.floor(value)));
     updateOrder(selected.code, (o) => ({ ...o, stages: o.stages.map((s) => s.key === stageKey ? { ...s, completed: safe } : s) }));
   }
+  function confirmUsinagemQuantity() {
+    if (!selected || !currentStage || currentStage.key !== "USINAGEM") return;
+    const parsed = Number(quantityDraft);
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > selected.quantity) return;
+    updateOrder(selected.code, (o) => ({ ...o, stages: o.stages.map((s) => s.key === "USINAGEM" ? { ...s, completed: parsed, quantityConfirmed: true } : s) }));
+  }
   function startStage(stageKey: StageKey) {
     if (!selected) return;
     updateOrder(selected.code, (o) => ({ ...o, stages: o.stages.map((s) => s.key === stageKey ? { ...s, checks: s.checks.map((c, i) => i === 0 ? { ...c, done: true } : c) } : s) }));
   }
   const currentStage = selected?.stages.find((s) => s.key === activeStage);
+  useEffect(() => { setQuantityDraft(String(currentStage?.completed ?? 0)); }, [selectedId, activeStage, currentStage?.completed]);
 
   if (selected && currentStage) {
     const stageIndex = selected.stages.findIndex((s) => s.key === activeStage);
@@ -78,7 +86,7 @@ export default function ProducaoPage() {
           <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold tracking-widest text-muted-foreground">ETAPA {stageIndex + 1} DE 6</p><h2 className="mt-1 text-xl font-bold">{currentStage.name}</h2><p className="mt-1 text-sm text-muted-foreground">{currentStage.description}</p></div><span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold">{doneChecks === currentStage.checks.length ? "Concluída" : doneChecks ? "Em andamento" : "Pendente"}</span></div>
           {currentStage.key === "USINAGEM" && <Link href="/producao/usinagem" className="mt-4 flex items-center justify-between rounded-lg border border-dashed p-3 text-sm hover:bg-muted/50"><span className="flex items-center gap-2"><DraftingCompass className="size-4" /> Abrir módulo independente de Usinagem CNC</span><ArrowRight className="size-4" /></Link>}
           <div className="mt-5 space-y-3">{currentStage.checks.map((c, i) => <label key={c.label} className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 hover:bg-muted/40"><input type="checkbox" checked={c.done} onChange={() => toggleCheck(currentStage.key, i)} className="size-4 accent-primary" /><span className={"text-sm " + (c.done ? "text-muted-foreground line-through" : "font-medium")}>{c.label}</span></label>)}</div>
-          <div className="mt-6 grid gap-4 rounded-lg bg-muted/40 p-4 sm:grid-cols-2"><label className="text-sm"><span className="mb-1 block text-muted-foreground">Quantidade planejada</span><input readOnly value={currentStage.planned} className="h-10 w-full rounded-md border bg-background px-3 font-mono" /></label><label className="text-sm"><span className="mb-1 block text-muted-foreground">Quantidade concluída</span><input type="number" min="0" max={selected.quantity} value={currentStage.completed} onChange={(e) => updateQuantity(currentStage.key, Number(e.target.value))} className="h-10 w-full rounded-md border bg-background px-3 font-mono" /></label></div>
+          {currentStage.key === "USINAGEM" ? <div className="mt-6 space-y-3 rounded-lg bg-muted/40 p-4"><div><h3 className="text-sm font-semibold">Confirmação da quantidade usinada</h3><p className="mt-1 text-xs text-muted-foreground">Confira a quantidade informada pelo CNC. O operador pode corrigir o número antes de confirmar.</p></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm"><span className="mb-1 block text-muted-foreground">Quantidade planejada</span><input readOnly value={currentStage.planned} className="h-10 w-full rounded-md border bg-background px-3 font-mono" /></label><label className="text-sm"><span className="mb-1 block text-muted-foreground">Quantidade produzida pelo CNC</span><input type="number" min="0" max={selected.quantity} step="1" value={quantityDraft} onChange={(e) => setQuantityDraft(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 font-mono" /></label></div><div className="flex flex-wrap items-center justify-between gap-3"><span className="text-xs text-muted-foreground">{currentStage.quantityConfirmed ? `Quantidade confirmada: ${currentStage.completed} peças` : "Aguardando confirmação do operador."}</span><button onClick={confirmUsinagemQuantity} disabled={quantityDraft.trim() === "" || !Number.isInteger(Number(quantityDraft)) || Number(quantityDraft) < 0 || Number(quantityDraft) > selected.quantity} className="h-10 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-40">Confirmar quantidade usinada</button></div></div> : <div className="mt-6 grid gap-4 rounded-lg bg-muted/40 p-4 sm:grid-cols-2"><label className="text-sm"><span className="mb-1 block text-muted-foreground">Quantidade planejada</span><input readOnly value={currentStage.planned} className="h-10 w-full rounded-md border bg-background px-3 font-mono" /></label><label className="text-sm"><span className="mb-1 block text-muted-foreground">Quantidade concluída</span><input type="number" min="0" max={selected.quantity} value={currentStage.completed} onChange={(e) => updateQuantity(currentStage.key, Number(e.target.value))} className="h-10 w-full rounded-md border bg-background px-3 font-mono" /></label></div>}
           <div className="mt-5 flex flex-wrap justify-between gap-2"><button onClick={() => startStage(currentStage.key)} className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted"><Play className="size-4" /> Iniciar etapa</button><button disabled={stageIndex === 0} onClick={() => setActiveStage(selected.stages[stageIndex - 1].key)} className="h-10 rounded-md border px-4 text-sm disabled:opacity-40">Anterior</button><button disabled={stageIndex === 5} onClick={() => setActiveStage(selected.stages[stageIndex + 1].key)} className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-40">Próxima etapa <ArrowRight className="size-4" /></button></div>
         </section>
       </div>
