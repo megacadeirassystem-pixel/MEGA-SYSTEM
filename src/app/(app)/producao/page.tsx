@@ -10,7 +10,7 @@ type CheckItem = { label: string; done: boolean };
 type Stage = { key: StageKey; name: string; description: string; checks: CheckItem[]; planned: number; completed: number; quantityConfirmed: boolean; };
 type Order = { code: string; pedido: string; client: string; product: string; quantity: number; priority: string; stages: Stage[] };
 
-const stageSeed: Omit<Stage, "planned" | "completed">[] = [
+const stageSeed: Omit<Stage, "planned" | "completed" | "quantityConfirmed">[] = [
   { key: "SERRALHERIA", name: "Serralheria", description: "Corte, preparação e solda das estruturas metálicas.", checks: [{ label: "Separar tubos e perfis", done: false }, { label: "Cortar conforme plano de corte", done: false }, { label: "Soldar estruturas", done: false }, { label: "Conferir esquadro e medidas", done: false }, { label: "Liberar lote para pintura", done: false }] },
   { key: "PINTURA", name: "Pintura", description: "Preparação de superfície e acabamento da estrutura.", checks: [{ label: "Receber e conferir estruturas", done: false }, { label: "Preparar superfície", done: false }, { label: "Aplicar pintura", done: false }, { label: "Inspecionar acabamento", done: false }, { label: "Liberar peças", done: false }] },
   { key: "USINAGEM", name: "Usinagem", description: "Separação dos materiais, execução CNC e confirmação da quantidade produzida.", checks: [{ label: "Separar chapas e materiais", done: false }, { label: "EXECUTAR USINAGEM CNC", done: false }, { label: "Conferir peças usinadas", done: false }] },
