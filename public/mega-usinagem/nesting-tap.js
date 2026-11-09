@@ -76,7 +76,7 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
     const result = await response.json().catch(() => null);
     if (!response.ok || !result) {
       throw Object.assign(Error(result?.error || 'Não foi possível acessar a biblioteca compartilhada.'), {
-        status: response.status, code: result?.code, replace: result?.replace
+        code: result?.code, replace: result?.replace
       });
     }
     return result;
@@ -110,57 +110,6 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
       }
     }
     return { pending, changed };
-  }
-
-  function showTapLogin(list) {
-    const form = document.createElement('form');
-    const email = document.createElement('input');
-    email.type = 'email';
-    email.placeholder = 'E-mail';
-    email.setAttribute('aria-label', 'E-mail');
-    email.autocomplete = 'username';
-    email.required = true;
-    const password = document.createElement('input');
-    password.type = 'password';
-    password.placeholder = 'Senha';
-    password.setAttribute('aria-label', 'Senha');
-    password.autocomplete = 'current-password';
-    password.required = true;
-    const submit = document.createElement('button');
-    submit.textContent = 'Entrar na biblioteca';
-    const message = document.createElement('p');
-    message.setAttribute('role', 'status');
-    form.append(email, password, submit, message);
-    form.onsubmit = async event => {
-      event.preventDefault();
-      submit.disabled = true;
-      try {
-        await tapRequest('/sessao', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.value, password: password.value })
-        });
-        await showSavedTaps();
-      } catch (error) {
-        message.textContent = error.message;
-      } finally {
-        password.value = '';
-        submit.disabled = false;
-      }
-    };
-    list.append(form);
-  }
-  const settings = [];
-  const history = MegaStore.readSetting(historyKey, []);
-  let visibleSheet = 0;
-  let records = Array.isArray(history) ? history : [];
-
-  function baseName({ items, sheetIndex, sheetCount, selectedName }) {
-    const names = [...new Set(items.map(item => item.name))];
-    const title = names.length > 1 ? 'CHAPA MISTA' : names[0] || selectedName || '';
-    if (!title) return '';
-    const safe = title.trim().replace(/\.tap$/i, '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').slice(0, 104);
-    return sheetCount > 1 || names.length > 1 ? safe + ' - CHAPA ' + (sheetIndex + 1) : safe;
   }
 
   function currentFile() {
@@ -224,7 +173,6 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
       feedback(shared ? 'TAP salvo na biblioteca compartilhada.' : 'TAP salvo. Abra TAPs salvos para consultá-lo ou baixar depois.');
     } catch (error) {
       feedback(error.message, true);
-      if (shared && error.status === 401) await showSavedTaps();
     } finally {
       saving = false;
       refresh();
@@ -282,21 +230,6 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
       }
       if (!dialog.open) return;
       list.textContent = libraryError?.message || (taps.length ? '' : shared ? 'Nenhum TAP compartilhado.' : 'Nenhum TAP salvo neste navegador.');
-      if (libraryError?.status === 401) showTapLogin(list);
-      if (shared && !libraryError) {
-        const signOut = document.createElement('button');
-        signOut.type = 'button';
-        signOut.textContent = 'Sair da biblioteca';
-        signOut.onclick = async () => {
-          try {
-            await tapRequest('/sessao', { method: 'DELETE' });
-            await showSavedTaps();
-          } catch (error) {
-            feedback(error.message, true);
-          }
-        };
-        list.append(signOut);
-      }
       if (pending.length && !libraryError) {
         const message = document.createElement('p');
         message.textContent = 'Arquivos locais pendentes de envio. Uma cópia local continua disponível abaixo.';
