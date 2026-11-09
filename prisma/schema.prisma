@@ -167,11 +167,23 @@ enum StatusPedido {
 }
 
 model Pedido {
-  id        String       @id @default(cuid())
-  codigo    String       @unique // MC-0847
-  cliente   String
-  status    StatusPedido @default(ORCAMENTO)
-  criadoEm  DateTime     @default(now())
+  id                 String       @id @default(cuid())
+  codigo             String       @unique // MC-0847
+  cliente            String
+  status             StatusPedido @default(ORCAMENTO)
+  tipoPedido         String?
+  origem             String? // WhatsApp, telefone, e-mail, presencial
+  vendedor           String?
+  telefoneContato    String?
+  emailContato       String?
+  enderecoEntrega    String?      @db.Text
+  dataEntrega        DateTime?
+  condicaoPagamento  String?
+  frete              Decimal?     @db.Decimal(12, 2)
+  desconto           Decimal?     @db.Decimal(12, 2)
+  valorTotal         Decimal?     @db.Decimal(14, 2)
+  observacoes        String?      @db.Text
+  criadoEm           DateTime     @default(now())
 
   itens          PedidoItem[]
   ordensProducao OrdemProducao[]
@@ -180,14 +192,17 @@ model Pedido {
   contasReceber  ContaReceber[]
   notasFiscais   NotaFiscal[]
 
+  @@index([status, dataEntrega])
   @@map("pedidos")
 }
 
 model PedidoItem {
-  id         String  @id @default(cuid())
-  pedidoId   String
-  produtoId  String
-  quantidade Int
+  id             String   @id @default(cuid())
+  pedidoId       String
+  produtoId      String
+  quantidade     Int
+  valorUnitario  Decimal? @db.Decimal(12, 2)
+  observacao     String?  @db.Text
 
   pedido  Pedido  @relation(fields: [pedidoId], references: [id])
   produto Produto @relation(fields: [produtoId], references: [id])
