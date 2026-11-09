@@ -61,6 +61,95 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
   const $ = id => document.getElementById(id);
   const name = $('nestingTapName');
   const historyKey = 'nestingTapHistory';
+  const shared = document.documentElement.classList.contains('mega-embedded');
+  const endpoint = '/api/usinagem/taps';
+  const uploadHistory = 'sharedTapUploads';
+
+  function tapSku(fileName) {
+    const skus = [...new Set(fileName.toUpperCase().match(/\bUSI-(?:ASS|ENC)-(?:BEL|GOL|JER|PLU)\b/g) || [])];
+    return skus.length === 1 ? skus[0] : null;
+  }
+
+  async function tapRequest(query = '', options) {
+    const response = await fetch(endpoint + query, { cache: 'no-store', ...options });
+    if (response.status === 204) return;
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result) {
+      throw Object.assign(Error(result?.error || 'Não foi possível acessar a biblioteca compartilhada.'), {
+        status: response.status, code: result?.code, replace: result?.replace
+      });
+    }
+    return result;
+  }
+
+  function uploadTap(tap, replace) {
+    return tapRequest('', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: tap.fileName, content: tap.content, pieces: tap.pieces, seconds: tap.seconds,
+        sheetNumber: tap.sheetNumber, sku: tapSku(tap.fileName), replace
+      })
+    });
+  }
+
+  async function uploadLocalTaps() {
+    const uploaded = MegaStore.readSetting(uploadHistory, []);
+    const pending = [];
+    let changed = false;
+    for (const tap of await MegaStore.listTaps()) {
+      const key = tap.id + '|' + tap.savedAt;
+      if (uploaded.includes(key)) continue;
+      try {
+        await uploadTap(tap);
+        uploaded.push(key);
+        MegaStore.writeSetting(uploadHistory, uploaded);
+        changed = true;
+      } catch {
+        pending.push(tap);
+      }
+    }
+    return { pending, changed };
+  }
+
+  function showTapLogin(list) {
+    const form = document.createElement('form');
+    const email = document.createElement('input');
+    email.type = 'email';
+    email.placeholder = 'E-mail';
+    email.setAttribute('aria-label', 'E-mail');
+    email.autocomplete = 'username';
+    email.required = true;
+    const password = document.createElement('input');
+    password.type = 'password';
+    password.placeholder = 'Senha';
+    password.setAttribute('aria-label', 'Senha');
+    password.autocomplete = 'current-password';
+    password.required = true;
+    const submit = document.createElement('button');
+    submit.textContent = 'Entrar na biblioteca';
+    const message = document.createElement('p');
+    message.setAttribute('role', 'status');
+    form.append(email, password, submit, message);
+    form.onsubmit = async event => {
+      event.preventDefault();
+      submit.disabled = true;
+      try {
+        await tapRequest('/sessao', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.value, password: password.value })
+        });
+        await showSavedTaps();
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        password.value = '';
+        submit.disabled = false;
+      }
+    };
+    list.append(form);
+  }
   const settings = [];
   const history = MegaStore.readSetting(historyKey, []);
   let visibleSheet = 0;
@@ -120,21 +209,22 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
       saving = true;
       $('nestingSaveTap').disabled = true;
       try {
-        record = await MegaStore.saveTap(record);
+        record = shared ? { ...record, ...await uploadTap(record) } : await MegaStore.saveTap(record);
       } catch (error) {
-        if (error.code !== 'TAP_NAME_EXISTS') throw error;
+        if (error.code !== 'TAP_NAME_EXISTS' || (shared && !error.replace)) throw error;
         if (!confirm('Já existe o arquivo "' + tap.fileName + '". Deseja substituí-lo?')) {
           feedback('O TAP salvo foi mantido.');
           return;
         }
-        record = await MegaStore.saveTap(record, true);
+        record = shared ? { ...record, ...await uploadTap(record, error.replace) } : await MegaStore.saveTap(record, true);
       }
       if (visibleSheet === index && getPlan().items === items) {
         settings[index] = { ...record, summary: 'TAP salvo. ' + summarize(tap) };
       }
-      feedback('TAP salvo. Abra TAPs salvos para consultá-lo ou baixar depois.');
+      feedback(shared ? 'TAP salvo na biblioteca compartilhada.' : 'TAP salvo. Abra TAPs salvos para consultá-lo ou baixar depois.');
     } catch (error) {
       feedback(error.message, true);
+      if (shared && error.status === 401) await showSavedTaps();
     } finally {
       saving = false;
       refresh();
@@ -159,7 +249,7 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
     }
   };
 
-  async function showSavedTaps() {
+  async function showSavedTaps(page = 0) {
     const dialog = $('nestingSavedTaps');
     const list = $('nestingSavedTapList');
     const details = $('nestingSavedTapDetails');
@@ -169,22 +259,74 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
     list.textContent = 'Carregando TAPs…';
     if (!dialog.open) dialog.showModal();
     try {
-      const taps = await MegaStore.listTaps();
+      let taps, pending = [], hasMore = false, libraryError;
+      if (shared) {
+        try {
+          let result = await tapRequest('?page=' + page);
+          if (page === 0) {
+            const migration = await uploadLocalTaps();
+            pending = migration.pending;
+            if (migration.changed) result = await tapRequest('?page=0');
+          }
+          hasMore = result.hasMore;
+          taps = result.taps.map(tap => ({
+            id: tap.id, fileName: tap.file_name, savedAt: tap.saved_at, pieces: tap.pieces,
+            seconds: tap.seconds, revision: tap.revision, remote: true, editable: tap.editable
+          }));
+        } catch (error) {
+          libraryError = error;
+          taps = (await MegaStore.listTaps()).map(tap => ({ ...tap, editable: true }));
+        }
+      } else {
+        taps = (await MegaStore.listTaps()).map(tap => ({ ...tap, editable: true }));
+      }
       if (!dialog.open) return;
-      list.textContent = taps.length ? '' : 'Nenhum TAP salvo neste navegador.';
+      list.textContent = libraryError?.message || (taps.length ? '' : shared ? 'Nenhum TAP compartilhado.' : 'Nenhum TAP salvo neste navegador.');
+      if (libraryError?.status === 401) showTapLogin(list);
+      if (shared && !libraryError) {
+        const signOut = document.createElement('button');
+        signOut.type = 'button';
+        signOut.textContent = 'Sair da biblioteca';
+        signOut.onclick = async () => {
+          try {
+            await tapRequest('/sessao', { method: 'DELETE' });
+            await showSavedTaps();
+          } catch (error) {
+            feedback(error.message, true);
+          }
+        };
+        list.append(signOut);
+      }
+      if (pending.length && !libraryError) {
+        const message = document.createElement('p');
+        message.textContent = 'Arquivos locais pendentes de envio. Uma cópia local continua disponível abaixo.';
+        list.append(message);
+        taps.push(...pending.map(tap => ({ ...tap, editable: true, pending: true })));
+      }
       for (const tap of taps) {
         const row = document.createElement('div');
         row.className = 'saved-row';
         const label = document.createElement('span');
-        label.textContent = tap.fileName + ' · ' + new Date(tap.savedAt).toLocaleString('pt-BR');
+        label.textContent = tap.fileName + ' · ' + new Date(tap.savedAt).toLocaleString('pt-BR') + (tap.pending ? ' · cópia local' : '');
         const open = document.createElement('button');
         open.type = 'button';
         open.textContent = 'Abrir';
-        open.onclick = () => {
-          $('nestingSavedTapSummary').textContent = tap.fileName + ' · ' + summarize(tap);
-          $('nestingSavedTapContent').value = tap.content;
-          $('nestingSavedTapDownload').onclick = () => downloadFile(tap);
-          details.hidden = false;
+        open.onclick = async () => {
+          open.disabled = true;
+          try {
+            const content = tap.remote ? (await tapRequest('?id=' + tap.id)).content : tap.content;
+            $('nestingSavedTapSummary').textContent = tap.fileName + ' · ' + summarize(tap);
+            $('nestingSavedTapContent').value = content;
+            $('nestingSavedTapDownload').onclick = () => downloadFile({ ...tap, content });
+            details.hidden = false;
+          } catch (error) {
+            $('nestingSavedTapSummary').textContent = error.message;
+            $('nestingSavedTapContent').value = '';
+            $('nestingSavedTapDownload').onclick = null;
+            details.hidden = false;
+          } finally {
+            open.disabled = false;
+          }
         };
         const remove = document.createElement('button');
         remove.type = 'button';
@@ -194,7 +336,8 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
           if (!confirm('Apagar o arquivo "' + tap.fileName + '" dos TAPs salvos?')) return;
           remove.disabled = true;
           try {
-            await MegaStore.deleteTap(tap.id);
+            if (tap.remote) await tapRequest('?id=' + tap.id + '&revision=' + tap.revision, { method: 'DELETE' });
+            else await MegaStore.deleteTap(tap.id);
             if (dialog.open) await showSavedTaps();
             feedback('TAP apagado.');
           } catch (error) {
@@ -205,15 +348,24 @@ function initNestingTap(machine, getPlan, feedback, stockThickness) {
         };
         const actions = document.createElement('div');
         actions.className = 'toolbar';
-        actions.append(open, remove);
+        actions.append(open);
+        if (tap.editable) actions.append(remove);
         row.append(label, actions);
         list.append(row);
+      }
+      for (const [enabled, title, target] of [[page > 0, 'Anterior', page - 1], [hasMore, 'Próxima', page + 1]]) {
+        if (!enabled) continue;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = title;
+        button.onclick = () => showSavedTaps(target);
+        list.append(button);
       }
     } catch (error) {
       list.textContent = error.message;
     }
   }
-  $('nestingOpenTaps').onclick = showSavedTaps;
+  $('nestingOpenTaps').onclick = () => showSavedTaps();
 
   return {
     refresh,
