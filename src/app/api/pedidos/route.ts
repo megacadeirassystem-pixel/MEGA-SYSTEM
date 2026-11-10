@@ -12,27 +12,51 @@ export async function GET() {
   const auth = await authenticated();
   if (!auth) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
-  // Read the sellable catalog directly from the same Supabase project used by
-  // the application. This avoids an empty Prisma result masking catalog access
-  // or relation-loading problems in the order form.
-  const { data, error } = await auth.supabase
-    .from("produtos")
-    .select("id, sku, nome, linha, precoBase, ativo")
-    .eq("ativo", true)
-    .order("linha", { ascending: true })
-    .order("nome", { ascending: true });
+  try {
+    // Use the same Prisma connection and product model used by POST when
+    // validating and saving order items. This keeps catalog reads and writes
+    // on exactly the same database.
+    const produtos = await prisma.produto.findMany({
+      where: { ativo: true },
+      orderBy: [{ linha: "asc" }, { nome: "asc" }],
+      include: {
+        bom: {
+          include: {
+            item: { include: { estoque: true } },
+          },
+        },
+      },
+    });
 
-  if (error) {
+    return NextResponse.json({
+      produtos: produtos.map((produto) => ({
+        ...produto,
+        precoBase: Number(produto.precoBase),
+        bom: produto.bom.map((b) => ({
+          ...b,
+          quantidadePorUnidade: Number(b.quantidadePorUnidade),
+          fatorPerda: Number(b.fatorPerda),
+          item: {
+            ...b.item,
+            estoque: b.item.estoque
+              ? {
+                  ...b.item.estoque,
+                  saldoAtual: Number(b.item.estoque.saldoAtual),
+                  reservado: Number(b.item.estoque.reservado),
+                }
+              : null,
+          },
+        })),
+      })),
+      total: produtos.length,
+    });
+  } catch (error) {
     console.error("[GET /api/pedidos] catalog query failed:", error);
-    return NextResponse.json({ error: "Não foi possível consultar o catálogo de produtos.", detail: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Não foi possível consultar o catálogo de produtos." },
+      { status: 500 }
+    );
   }
-
-  const produtos = (data || []).map((produto) => ({
-    ...produto,
-    precoBase: Number(produto.precoBase),
-    bom: [],
-  }));
-  return NextResponse.json({ produtos, total: produtos.length });
 }
 
 type ItemInput = { produtoId: string; quantidade: number; valorUnitario: number; observacao?: string };
