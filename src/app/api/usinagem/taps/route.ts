@@ -1,10 +1,18 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
+
 
 const metadata = Prisma.sql`id, file_name, pieces, seconds, sheet_number, sku, revision, saved_at`;
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const fail = (error: string, status: number) => Response.json({ error }, { status });
 const privateHeaders = { "Cache-Control": "private, no-store" };
+async function authenticated() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  return !error && data.user ? data.user : null;
+}
+
 
 type Tap = {
   id: string; file_name: string; pieces: number; seconds: number;
@@ -17,6 +25,7 @@ function databaseFailure(error: unknown) {
 }
 
 export async function GET(request: Request) {
+  if (!(await authenticated())) return fail("Não autenticado.", 401);
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   try {
@@ -39,6 +48,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!(await authenticated())) return fail("Não autenticado.", 401);
   if (request.headers.get("origin") !== new URL(request.url).origin) return fail("Origem inválida.", 403);
   if (request.headers.get("content-type")?.split(";")[0] !== "application/json") return fail("Envie o TAP em JSON.", 415);
   const raw = await request.text();
@@ -95,6 +105,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!(await authenticated())) return fail("Não autenticado.", 401);
   if (request.headers.get("origin") !== new URL(request.url).origin) return fail("Origem inválida.", 403);
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
