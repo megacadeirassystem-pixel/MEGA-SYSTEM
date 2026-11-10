@@ -5,22 +5,34 @@ import { createClient } from "@/lib/supabase/server";
 async function authenticated() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
-  return !error && data.user ? data.user : null;
+  return !error && data.user ? { supabase, user: data.user } : null;
 }
 
 export async function GET() {
-  const user = await authenticated();
-  if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  const auth = await authenticated();
+  if (!auth) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
-  const produtos = await prisma.produto.findMany({
-    where: { ativo: true },
-    orderBy: [{ linha: "asc" }, { nome: "asc" }],
-    select: { id: true, sku: true, nome: true, linha: true, precoBase: true,
-      bom: { select: { quantidadePorUnidade: true, fatorPerda: true,
-        item: { select: { id: true, sku: true, nome: true, unidadeMedida: true,
-          estoque: { select: { saldoAtual: true, reservado: true } } } } } } },
-  });
-  return NextResponse.json({ produtos });
+  // Read the sellable catalog directly from the same Supabase project used by
+  // the application. This avoids an empty Prisma result masking catalog access
+  // or relation-loading problems in the order form.
+  const { data, error } = await auth.supabase
+    .from("produtos")
+    .select("id, sku, nome, linha, precoBase, ativo")
+    .eq("ativo", true)
+    .order("linha", { ascending: true })
+    .order("nome", { ascending: true });
+
+  if (error) {
+    console.error("[GET /api/pedidos] catalog query failed:", error);
+    return NextResponse.json({ error: "Não foi possível consultar o catálogo de produtos.", detail: error.message }, { status: 500 });
+  }
+
+  const produtos = (data || []).map((produto) => ({
+    ...produto,
+    precoBase: Number(produto.precoBase),
+    bom: [],
+  }));
+  return NextResponse.json({ produtos, total: produtos.length });
 }
 
 type ItemInput = { produtoId: string; quantidade: number; valorUnitario: number; observacao?: string };
@@ -32,8 +44,9 @@ type Body = {
 };
 
 export async function POST(request: Request) {
-  const user = await authenticated();
-  if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  const auth = await authenticated();
+  if (!auth) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  const user = auth.user;
 
   let body: Body;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "JSON inválido." }, { status: 400 }); }
