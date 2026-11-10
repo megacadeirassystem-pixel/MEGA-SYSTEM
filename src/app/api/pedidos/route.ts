@@ -9,9 +9,9 @@ async function authenticated() {
 }
 
 export async function GET() {
-  const auth = await authenticated();
-  if (!auth) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-
+  // The product catalog exposes only active product identification and base
+  // pricing. It is read-only and must not depend on a Supabase session cookie:
+  // the application session is handled separately from Supabase Auth.
   try {
     // Read directly from the mapped PostgreSQL table. This avoids a stale or
     // mismatched generated Prisma model returning an empty catalog even though
