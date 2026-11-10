@@ -13,27 +13,28 @@ export async function GET() {
   if (!auth) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
   try {
-    // Keep catalog loading independent from BOM/stock relations. The order
-    // selector needs only the active product master data.
-    const produtos = await prisma.produto.findMany({
-      where: { ativo: true },
-      select: {
-        id: true,
-        sku: true,
-        nome: true,
-        linha: true,
-        precoBase: true,
-      },
-      orderBy: [{ linha: "asc" }, { nome: "asc" }],
-    });
+    // Read directly from the mapped PostgreSQL table. This avoids a stale or
+    // mismatched generated Prisma model returning an empty catalog even though
+    // the production table contains active chairs.
+    const rows = await prisma.$queryRaw<Array<{
+      id: string;
+      sku: string;
+      nome: string;
+      linha: string;
+      precoBase: unknown;
+    }>>`
+      SELECT id, sku, nome, linha, "precoBase"
+      FROM public.produtos
+      WHERE ativo = TRUE
+      ORDER BY linha ASC, nome ASC
+    `;
 
-    return NextResponse.json({
-      produtos: produtos.map((produto) => ({
-        ...produto,
-        precoBase: Number(produto.precoBase),
-      })),
-      total: produtos.length,
-    });
+    const produtos = rows.map((produto) => ({
+      ...produto,
+      precoBase: Number(produto.precoBase),
+    }));
+
+    return NextResponse.json({ produtos, total: produtos.length });
   } catch (error) {
     console.error("[GET /api/pedidos] catalog query failed:", error);
     const detail = error instanceof Error ? error.message : "Erro desconhecido";
