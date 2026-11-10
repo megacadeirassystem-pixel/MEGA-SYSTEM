@@ -1,170 +1,30 @@
 "use client";
-
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/mega/page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { pipeline as initialPipeline, segmentos, vendedores, linhasProduto, formatBRL, type Deal } from "@/lib/mock-data";
-
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { segmentos, vendedores, linhasProduto, formatBRL } from "@/lib/mock-data";
+type Etapa = "LEAD" | "VISITA" | "ORCAMENTO" | "NEGOCIACAO" | "GANHO" | "PERDIDO";
+type Deal = { id: string; nome: string; seg: string; valor: number; vendedor: string; linha_produto: string; telefone: string | null; observacao: string | null; etapa: Etapa };
+const etapas: { key: Etapa; label: string }[] = [{key:"LEAD",label:"Lead"},{key:"VISITA",label:"Visita / medição"},{key:"ORCAMENTO",label:"Orçamento"},{key:"NEGOCIACAO",label:"Negociação"},{key:"GANHO",label:"Ganho"},{key:"PERDIDO",label:"Perdido"}];
 export default function ComercialPage() {
-  const [pipeline, setPipeline] = useState(initialPipeline);
-  const [open, setOpen] = useState(false);
-  const [nome, setNome] = useState("");
-  const [seg, setSeg] = useState(segmentos[0]);
-  const [vendedor, setVendedor] = useState(vendedores[0]);
-  const [linha, setLinha] = useState(linhasProduto[0]);
-  const [valor, setValor] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [observacao, setObservacao] = useState("");
-
-  function criarOportunidade() {
-    const valorNum = Number(valor);
-    if (!nome.trim() || !valorNum || valorNum <= 0) {
-      toast.error("Preencha nome e um valor válido.");
-      return;
-    }
-    const novoDeal: Deal = { nome: nome.trim(), seg, valor: valorNum, vendedor, linha, telefone: telefone.trim(), observacao: observacao.trim() };
-    setPipeline((prev) => prev.map((lane, i) => (i === 0 ? { ...lane, deals: [novoDeal, ...lane.deals] } : lane)));
-    setOpen(false);
-    setNome("");
-    setValor("");
-    setTelefone("");
-    setObservacao("");
-    toast.success(`"${novoDeal.nome}" entrou no funil em Lead.`);
-  }
-
-  return (
-    <div>
-      <PageHeader
-        title="Comercial"
-        description="Lead → visita/medição → orçamento → negociação → ganho."
-        action={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger className={buttonVariants()}>
-              <Plus /> Nova oportunidade
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Nova oportunidade</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-3">
-                <label className="flex flex-col gap-1.5 text-xs font-medium">
-                  Cliente / instituição
-                  <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Hotel Transamérica" />
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex flex-col gap-1.5 text-xs font-medium">
-                    Segmento
-                    <select
-                      value={seg}
-                      onChange={(e) => setSeg(e.target.value)}
-                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-                    >
-                      {segmentos.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-1.5 text-xs font-medium">
-                    Linha de interesse
-                    <select
-                      value={linha}
-                      onChange={(e) => setLinha(e.target.value)}
-                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-                    >
-                      {linhasProduto.map((l) => (
-                        <option key={l} value={l}>
-                          {l}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex flex-col gap-1.5 text-xs font-medium">
-                    Vendedor responsável
-                    <select
-                      value={vendedor}
-                      onChange={(e) => setVendedor(e.target.value)}
-                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-                    >
-                      {vendedores.map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-1.5 text-xs font-medium">
-                    Valor estimado (R$)
-                    <Input
-                      value={valor}
-                      onChange={(e) => setValor(e.target.value)}
-                      type="number"
-                      placeholder="42800"
-                      className="font-mono"
-                    />
-                  </label>
-                </div>
-                <label className="flex flex-col gap-1.5 text-xs font-medium">
-                  Telefone / contato
-                  <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 99999-0000" />
-                </label>
-                <label className="flex flex-col gap-1.5 text-xs font-medium">
-                  Observação
-                  <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Contexto da negociação, prazo, concorrência…" />
-                </label>
-              </div>
-              <DialogFooter>
-                <Button onClick={criarOportunidade}>Adicionar ao funil</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        }
-      />
-
-      <div className="mb-4 flex justify-end"><Link href="/comercial/pedidos/novo" className={buttonVariants()}><Plus className="size-4" /> Novo pedido</Link></div>
-
-      <div className="flex overflow-hidden rounded-xl border bg-card">
-        {pipeline.map((lane, i) => {
-          const total = lane.deals.reduce((sum, d) => sum + d.valor, 0);
-          return (
-            <div key={lane.etapa} className={`min-w-0 flex-1 ${i > 0 ? "border-l" : ""}`}>
-              <div className="border-b px-3.5 py-2.5">
-                <h4 className="text-xs font-semibold">{lane.etapa}</h4>
-                <div className="mt-0.5 font-mono text-[10.5px] text-muted-foreground">{formatBRL(total)}</div>
-              </div>
-              <div className="flex flex-col gap-1.5 p-2">
-                {lane.deals.map((d) => (
-                  <div key={d.nome} className="rounded-md border bg-popover p-2.5">
-                    <strong className="block text-[11.5px] font-semibold">{d.nome}</strong>
-                    <span className="text-[10px] text-muted-foreground">
-                      {d.seg}
-                      {d.linha ? ` · ${d.linha}` : ""}
-                    </span>
-                    <span className="mt-1 block font-mono text-[11.5px] font-semibold">{formatBRL(d.valor)}</span>
-                    {d.vendedor && <span className="mt-1 block text-[10px] text-muted-foreground">{d.vendedor}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+ const [deals,setDeals]=useState<Deal[]>([]),[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[open,setOpen]=useState(false);
+ const [nome,setNome]=useState(""),[seg,setSeg]=useState(segmentos[0]),[vendedor,setVendedor]=useState(vendedores[0]),[linha,setLinha]=useState(linhasProduto[0]),[valor,setValor]=useState(""),[telefone,setTelefone]=useState(""),[observacao,setObservacao]=useState("");
+ const carregar=useCallback(async()=>{setLoading(true);try{const response=await fetch("/api/comercial/oportunidades",{cache:"no-store"});const data=await response.json();if(!response.ok)throw new Error(data.error||"Falha ao carregar.");setDeals(data.oportunidades);}catch(e){toast.error(e instanceof Error?e.message:"Falha ao carregar.");}finally{setLoading(false);}},[]);
+ useEffect(()=>{void carregar();},[carregar]);
+ async function criarOportunidade(){const valorNum=Number(valor);if(!nome.trim()||!Number.isFinite(valorNum)||valorNum<=0){toast.error("Preencha cliente e valor válido.");return;}setSaving(true);try{const response=await fetch("/api/comercial/oportunidades",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nome:nome.trim(),segmento:seg,vendedor,linha_produto:linha,valor_estimado:valorNum,telefone,observacao})});const data=await response.json();if(!response.ok)throw new Error(data.error||"Não foi possível salvar.");setDeals(current=>[data.oportunidade,...current]);setOpen(false);setNome("");setValor("");setTelefone("");setObservacao("");toast.success("Oportunidade salva no banco de dados.");}catch(e){toast.error(e instanceof Error?e.message:"Erro ao salvar.");}finally{setSaving(false);}}
+ async function mover(deal:Deal,delta:number){const index=etapas.findIndex(x=>x.key===deal.etapa),next=etapas[index+delta];if(!next)return;try{const response=await fetch("/api/comercial/oportunidades",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:deal.id,etapa:next.key})});const data=await response.json();if(!response.ok)throw new Error(data.error||"Não foi possível atualizar.");setDeals(current=>current.map(x=>x.id===deal.id?data.oportunidade:x));toast.success("Etapa atualizada: "+next.label);}catch(e){toast.error(e instanceof Error?e.message:"Erro ao mover.");}}
+ return <div>
+ <PageHeader title="Comercial" description="Lead → visita/medição → orçamento → negociação → ganho." action={<Dialog open={open} onOpenChange={setOpen}><DialogTrigger className={buttonVariants()}><Plus/> Nova oportunidade</DialogTrigger><DialogContent><DialogHeader><DialogTitle>Nova oportunidade</DialogTitle></DialogHeader><div className="flex flex-col gap-3">
+ <label className="flex flex-col gap-1.5 text-xs font-medium">Cliente / instituição<Input value={nome} onChange={e=>setNome(e.target.value)} placeholder="Hotel Transamérica"/></label>
+ <div className="grid grid-cols-2 gap-3"><label className="flex flex-col gap-1.5 text-xs font-medium">Segmento<select value={seg} onChange={e=>setSeg(e.target.value)} className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm">{segmentos.map(s=><option key={s}>{s}</option>)}</select></label><label className="flex flex-col gap-1.5 text-xs font-medium">Linha de interesse<select value={linha} onChange={e=>setLinha(e.target.value)} className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm">{linhasProduto.map(l=><option key={l}>{l}</option>)}</select></label></div>
+ <div className="grid grid-cols-2 gap-3"><label className="flex flex-col gap-1.5 text-xs font-medium">Vendedor responsável<select value={vendedor} onChange={e=>setVendedor(e.target.value)} className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm">{vendedores.map(v=><option key={v}>{v}</option>)}</select></label><label className="flex flex-col gap-1.5 text-xs font-medium">Valor estimado (R$)<Input value={valor} onChange={e=>setValor(e.target.value)} type="number" placeholder="42800"/></label></div>
+ <label className="flex flex-col gap-1.5 text-xs font-medium">Telefone / contato<Input value={telefone} onChange={e=>setTelefone(e.target.value)} placeholder="(11) 99999-0000"/></label><label className="flex flex-col gap-1.5 text-xs font-medium">Observação<Textarea value={observacao} onChange={e=>setObservacao(e.target.value)}/></label></div><DialogFooter><Button onClick={criarOportunidade} disabled={saving}>{saving?"Salvando...":"Adicionar ao funil"}</Button></DialogFooter></DialogContent></Dialog>}/>
+ <div className="mb-4 flex items-center justify-between"><span className="text-xs text-muted-foreground">{loading?"Carregando...":deals.length+" oportunidades cadastradas"}</span><div className="flex gap-2"><Button variant="outline" size="sm" onClick={()=>void carregar()}><RefreshCw className="mr-2 size-3.5"/>Atualizar</Button><Link href="/comercial/pedidos/novo" className={buttonVariants()}><Plus className="size-4"/>Novo pedido</Link></div></div>
+ <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">{etapas.map(etapa=>{const items=deals.filter(d=>d.etapa===etapa.key),total=items.reduce((s,d)=>s+Number(d.valor),0);return <section key={etapa.key} className="min-w-0 rounded-xl border bg-card"><header className="border-b px-3 py-3"><h3 className="text-xs font-semibold">{etapa.label}</h3><p className="mt-1 font-mono text-[10px] text-muted-foreground">{items.length} · {formatBRL(total)}</p></header><div className="flex min-h-32 flex-col gap-2 p-2">{items.map(deal=>{const index=etapas.findIndex(x=>x.key===deal.etapa);return <article key={deal.id} className="rounded-md border bg-popover p-2.5"><strong className="block text-xs">{deal.nome}</strong><span className="block text-[10px] text-muted-foreground">{deal.seg}{deal.linha_produto?" · "+deal.linha_produto:""}</span><span className="mt-1 block font-mono text-xs font-semibold">{formatBRL(Number(deal.valor))}</span><span className="mt-1 block text-[10px] text-muted-foreground">{deal.vendedor}</span><div className="mt-2 flex justify-between gap-1"><Button size="sm" variant="outline" disabled={index===0} onClick={()=>void mover(deal,-1)} aria-label="Etapa anterior"><ArrowLeft className="size-3.5"/></Button><Button size="sm" variant="outline" disabled={index===etapas.length-1} onClick={()=>void mover(deal,1)} aria-label="Próxima etapa"><ArrowRight className="size-3.5"/>Avançar</Button></div></article>;})}{!items.length&&<p className="px-1 py-3 text-center text-[10px] text-muted-foreground">{loading?" ":"Nenhuma oportunidade"}</p>}</div></section>;})}</div></div>;
 }
