@@ -13,47 +13,35 @@ export async function GET() {
   if (!auth) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
   try {
-    // Use the same Prisma connection and product model used by POST when
-    // validating and saving order items. This keeps catalog reads and writes
-    // on exactly the same database.
+    // Keep catalog loading independent from BOM/stock relations. The order
+    // selector needs only the active product master data.
     const produtos = await prisma.produto.findMany({
       where: { ativo: true },
-      orderBy: [{ linha: "asc" }, { nome: "asc" }],
-      include: {
-        bom: {
-          include: {
-            item: { include: { estoque: true } },
-          },
-        },
+      select: {
+        id: true,
+        sku: true,
+        nome: true,
+        linha: true,
+        precoBase: true,
       },
+      orderBy: [{ linha: "asc" }, { nome: "asc" }],
     });
 
     return NextResponse.json({
       produtos: produtos.map((produto) => ({
         ...produto,
         precoBase: Number(produto.precoBase),
-        bom: produto.bom.map((b) => ({
-          ...b,
-          quantidadePorUnidade: Number(b.quantidadePorUnidade),
-          fatorPerda: Number(b.fatorPerda),
-          item: {
-            ...b.item,
-            estoque: b.item.estoque
-              ? {
-                  ...b.item.estoque,
-                  saldoAtual: Number(b.item.estoque.saldoAtual),
-                  reservado: Number(b.item.estoque.reservado),
-                }
-              : null,
-          },
-        })),
       })),
       total: produtos.length,
     });
   } catch (error) {
     console.error("[GET /api/pedidos] catalog query failed:", error);
+    const detail = error instanceof Error ? error.message : "Erro desconhecido";
+    const code = typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
     return NextResponse.json(
-      { error: "Não foi possível consultar o catálogo de produtos." },
+      { error: "Falha ao consultar produtos no banco de dados.", detail, code },
       { status: 500 }
     );
   }
