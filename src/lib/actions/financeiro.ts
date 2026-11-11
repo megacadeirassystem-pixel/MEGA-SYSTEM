@@ -75,7 +75,11 @@ export async function darBaixaContaPagar(formData: FormData) {
   if (conta.status === "PAGO" || conta.status === "CANCELADO") throw new Error("Este título já está encerrado.");
 
   const novoValorPago = Number(conta.valorPago) + valor;
-  const quitado = novoValorPago + Number(conta.desconto) + desconto >= Number(conta.valor) - 0.01;
+  const novoDesconto = Number(conta.desconto) + desconto;
+  if (novoValorPago + novoDesconto > Number(conta.valor) + 0.01) {
+    throw new Error("Valor pago + desconto não pode passar do valor do título.");
+  }
+  const quitado = novoValorPago + novoDesconto >= Number(conta.valor) - 0.01;
 
   await prisma.contaPagar.update({
     where: { id: contaId },
@@ -83,7 +87,7 @@ export async function darBaixaContaPagar(formData: FormData) {
       valorPago: novoValorPago,
       juros: Number(conta.juros) + juros,
       multa: Number(conta.multa) + multa,
-      desconto: Number(conta.desconto) + desconto,
+      desconto: novoDesconto,
       dataBaixa,
       formaPagamento: optionalId(formData, "formaPagamento") ?? conta.formaPagamento,
       contaBancariaId: optionalId(formData, "contaBancariaId") ?? conta.contaBancariaId,
@@ -95,6 +99,8 @@ export async function darBaixaContaPagar(formData: FormData) {
 
 export async function cancelarContaPagar(formData: FormData) {
   const contaId = String(formData.get("contaId"));
+  const conta = await prisma.contaPagar.findUniqueOrThrow({ where: { id: contaId } });
+  if (conta.status === "PAGO" || conta.status === "CANCELADO") throw new Error("Este título já está encerrado.");
   await prisma.contaPagar.update({ where: { id: contaId }, data: { status: "CANCELADO" } });
   revalidatePath("/financeiro");
 }
@@ -106,6 +112,11 @@ export async function atualizarContaPagar(formData: FormData) {
   const vencimento = new Date(String(formData.get("vencimento")));
   if (!descricao || !valor || valor <= 0 || isNaN(vencimento.getTime())) {
     throw new Error("Preencha descrição, valor e vencimento.");
+  }
+
+  const atual = await prisma.contaPagar.findUniqueOrThrow({ where: { id } });
+  if (valor < Number(atual.valorPago) + Number(atual.desconto)) {
+    throw new Error("O valor não pode ficar menor do que o que já foi pago/descontado neste título.");
   }
 
   await prisma.contaPagar.update({
@@ -169,6 +180,9 @@ export async function darBaixaContaReceber(formData: FormData) {
   if (conta.status === "PAGO" || conta.status === "CANCELADO") throw new Error("Este título já está encerrado.");
 
   const novoValorPago = Number(conta.valorPago) + valor;
+  if (novoValorPago > Number(conta.valor) + 0.01) {
+    throw new Error("Valor recebido não pode passar do valor do título.");
+  }
   const quitado = novoValorPago >= Number(conta.valor) - 0.01;
 
   await prisma.contaReceber.update({
@@ -185,6 +199,8 @@ export async function darBaixaContaReceber(formData: FormData) {
 
 export async function cancelarContaReceber(formData: FormData) {
   const contaId = String(formData.get("contaId"));
+  const conta = await prisma.contaReceber.findUniqueOrThrow({ where: { id: contaId } });
+  if (conta.status === "PAGO" || conta.status === "CANCELADO") throw new Error("Este título já está encerrado.");
   await prisma.contaReceber.update({ where: { id: contaId }, data: { status: "CANCELADO" } });
   revalidatePath("/financeiro");
 }
@@ -197,6 +213,11 @@ export async function atualizarContaReceber(formData: FormData) {
   const vencimento = new Date(String(formData.get("vencimento")));
   if (!descricao || !clienteNome || !valor || valor <= 0 || isNaN(vencimento.getTime())) {
     throw new Error("Preencha descrição, cliente, valor e vencimento.");
+  }
+
+  const atual = await prisma.contaReceber.findUniqueOrThrow({ where: { id } });
+  if (valor < Number(atual.valorPago)) {
+    throw new Error("O valor não pode ficar menor do que o que já foi recebido neste título.");
   }
 
   await prisma.contaReceber.update({
@@ -347,6 +368,9 @@ export async function conciliarLancamentoOfx(formData: FormData) {
     const conta = await prisma.contaPagar.findUniqueOrThrow({ where: { id: contaId } });
     if (conta.status === "PAGO" || conta.status === "CANCELADO") throw new Error("Este título já está encerrado.");
     const novoValorPago = Number(conta.valorPago) + valorTransacao;
+    if (novoValorPago + Number(conta.desconto) > Number(conta.valor) + 0.01) {
+      throw new Error("Valor da transação é maior que o saldo deste título — confira a sugestão.");
+    }
     await prisma.contaPagar.update({
       where: { id: contaId },
       data: { valorPago: novoValorPago, dataBaixa: dataTransacao, status: novoValorPago >= Number(conta.valor) - 0.01 ? "PAGO" : "PARCIAL" },
@@ -356,6 +380,9 @@ export async function conciliarLancamentoOfx(formData: FormData) {
     const conta = await prisma.contaReceber.findUniqueOrThrow({ where: { id: contaId } });
     if (conta.status === "PAGO" || conta.status === "CANCELADO") throw new Error("Este título já está encerrado.");
     const novoValorPago = Number(conta.valorPago) + valorTransacao;
+    if (novoValorPago > Number(conta.valor) + 0.01) {
+      throw new Error("Valor da transação é maior que o saldo deste título — confira a sugestão.");
+    }
     await prisma.contaReceber.update({
       where: { id: contaId },
       data: { valorPago: novoValorPago, dataBaixa: dataTransacao, status: novoValorPago >= Number(conta.valor) - 0.01 ? "PAGO" : "PARCIAL" },

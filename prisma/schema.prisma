@@ -166,14 +166,29 @@ enum StatusPedido {
   CANCELADO
 }
 
+// Etapa do funil comercial (pré-venda) — diferente de StatusPedido, que é o ciclo de
+// vida pós-confirmação (produção/entrega). Um pedido anda por aqui até GANHO, só então
+// status vira CONFIRMADO e dispara a explosão de BOM.
+enum EtapaFunil {
+  LEAD
+  VISITA
+  ORCAMENTO
+  NEGOCIACAO
+  GANHO
+  PERDIDO
+}
+
 model Pedido {
   id                 String       @id @default(cuid())
   codigo             String       @unique // MC-0847
   cliente            String
+  segmento           String? // Universidade, Igreja, Hotel, Auditório, Office...
   status             StatusPedido @default(ORCAMENTO)
+  etapaFunil         EtapaFunil   @default(LEAD)
   tipoPedido         String?
   origem             String? // WhatsApp, telefone, e-mail, presencial
   vendedor           String?
+  telefone           String?
   telefoneContato    String?
   emailContato       String?
   enderecoEntrega    String?      @db.Text
@@ -182,6 +197,7 @@ model Pedido {
   frete              Decimal?     @db.Decimal(12, 2)
   desconto           Decimal?     @db.Decimal(12, 2)
   valorTotal         Decimal?     @db.Decimal(14, 2)
+  observacao         String?      @db.Text
   observacoes        String?      @db.Text
   criadoEm           DateTime     @default(now())
 

@@ -9,6 +9,7 @@ import { ConciliacaoBancaria } from "@/components/financeiro/conciliacao-bancari
 import { FluxoCaixaChart, type FluxoCaixaPonto } from "@/components/financeiro/fluxo-caixa-chart";
 import { prisma } from "@/lib/prisma";
 import { formatBRL } from "@/lib/utils";
+import { estaVencido } from "@/lib/financeiro-helpers";
 
 // Tela inteira depende de dados ao vivo (vencido, fluxo de caixa, DRE do mês) — não há shell
 // estático que valha a pena prerenderizar, então vira uma rota bloqueante normal.
@@ -47,6 +48,7 @@ export default async function FinanceiroPage() {
     planoContas: c.planoContas?.nome ?? null,
     valor: Number(c.valor),
     valorPago: Number(c.valorPago),
+    desconto: Number(c.desconto),
     vencimento: c.vencimento.toISOString(),
     status: c.status,
   }));
@@ -68,7 +70,7 @@ export default async function FinanceiroPage() {
   const totalAReceber = abertosReceber.reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
   const totalAPagar = abertosPagar.reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
   const saldoProjetado = totalAReceber - totalAPagar;
-  const vencidos = [...abertosPagar, ...abertosReceber].filter((c) => c.vencimento < hoje).length;
+  const vencidos = [...abertosPagar, ...abertosReceber].filter((c) => estaVencido(c.vencimento.toISOString())).length;
 
   const kpis = [
     { label: "A RECEBER EM ABERTO", value: formatBRL(totalAReceber) },
@@ -77,22 +79,23 @@ export default async function FinanceiroPage() {
     { label: "TÍTULOS VENCIDOS", value: String(vencidos), accent: vencidos > 0 ? "var(--crit)" : undefined },
   ];
 
-  // Fluxo de caixa: meses passados (incl. atual) somam o que já foi de fato baixado; meses
-  // futuros projetam pelo vencimento dos títulos ainda abertos — sem isso o gráfico fica vazio
-  // num sistema recém-ligado, que é exatamente a situação de hoje.
+  // Fluxo de caixa: cada mês soma o que já foi de fato baixado (realizado, pela data da baixa)
+  // MAIS o que ainda está em aberto vencendo naquele mês (projetado). Somar os dois sempre — em
+  // vez de só "passado = realizado, futuro = projetado" — evita um buraco real: uma conta aberta
+  // que vence ainda este mês não some do gráfico só porque o mês corrente também olha pra trás.
+  // Não há dupla contagem: um título só está baixado OU aberto, nunca os dois ao mesmo tempo.
   const fluxoCaixa: FluxoCaixaPonto[] = [];
   let saldoAcumulado = 0;
   for (let i = -MESES_PASSADO; i <= MESES_FUTURO; i++) {
     const refMes = inicioMes(new Date(hoje.getFullYear(), hoje.getMonth() + i, 1));
-    const passado = i <= 0;
 
-    const recebido = passado
-      ? contasReceberRaw.filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, refMes)).reduce((s, c) => s + Number(c.valorPago), 0)
-      : abertosReceber.filter((c) => mesmoMes(c.vencimento, refMes)).reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
+    const recebido =
+      contasReceberRaw.filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, refMes)).reduce((s, c) => s + Number(c.valorPago), 0) +
+      abertosReceber.filter((c) => mesmoMes(c.vencimento, refMes)).reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
 
-    const pago = passado
-      ? contasPagarRaw.filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, refMes)).reduce((s, c) => s + Number(c.valorPago) + Number(c.juros) + Number(c.multa), 0)
-      : abertosPagar.filter((c) => mesmoMes(c.vencimento, refMes)).reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
+    const pago =
+      contasPagarRaw.filter((c) => c.dataBaixa && mesmoMes(c.dataBaixa, refMes)).reduce((s, c) => s + Number(c.valorPago) + Number(c.juros) + Number(c.multa), 0) +
+      abertosPagar.filter((c) => mesmoMes(c.vencimento, refMes)).reduce((s, c) => s + (Number(c.valor) - Number(c.valorPago)), 0);
 
     saldoAcumulado += recebido - pago;
     fluxoCaixa.push({ mes: mesLabel(refMes), recebido, pago, saldo: saldoAcumulado });

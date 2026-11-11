@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
-
-async function authenticated() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-  return !error && data.user ? { supabase, user: data.user } : null;
-}
 
 export async function GET() {
   // The product catalog exposes only active product identification and base
@@ -57,10 +50,8 @@ type Body = {
 };
 
 export async function POST(request: Request) {
-  const auth = await authenticated();
-  if (!auth) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-  const user = auth.user;
-
+  // Sem login de usuário implementado no app ainda — este endpoint é de uso
+  // interno (ERP atrás de VPN/rede da empresa), não público.
   let body: Body;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "JSON inválido." }, { status: 400 }); }
   if (!body.cliente?.trim() || !Array.isArray(body.itens) || body.itens.length === 0)
@@ -95,7 +86,7 @@ export async function POST(request: Request) {
 
   const pedido = await prisma.pedido.create({ data: {
     codigo, cliente: body.cliente.trim(), status: "ORCAMENTO", tipoPedido: body.tipoPedido || "VENDA",
-    origem: body.origem || "WHATSAPP", vendedor: body.vendedor || user.email || null,
+    origem: body.origem || "WHATSAPP", vendedor: body.vendedor || null,
     telefoneContato: body.telefoneContato || null, emailContato: body.emailContato || null,
     enderecoEntrega: body.enderecoEntrega || null, dataEntrega: body.dataEntrega ? new Date(body.dataEntrega) : null,
     condicaoPagamento: body.condicaoPagamento || null, frete: Number(body.frete||0), desconto: Number(body.desconto||0),

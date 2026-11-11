@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, ChevronRight, ClipboardList, DraftingCompass, Factory, PackageCheck, Play, RotateCcw } from "lucide-react";
 import { PageHeader } from "@/components/mega/page-header";
@@ -43,6 +43,7 @@ export default function ProducaoPage() {
   const [filter, setFilter] = useState("TODAS");
   const [demoNotice, setDemoNotice] = useState(true);
   const [quantityDraft, setQuantityDraft] = useState("0");
+  const [quantityDraftKey, setQuantityDraftKey] = useState<string | null>(null);
   const [materialDone, setMaterialDone] = useState<Record<string, boolean>>({});
   const selected = orders.find((o) => o.code === selectedId) ?? null;
   const totals = useMemo(() => ({ total: orders.length, running: orders.filter((o) => o.stages.some((s) => s.completed > 0)).length, released: orders.filter((o) => o.stages.every((s) => s.checks.every((c) => c.done))).length }), [orders]);
@@ -69,7 +70,11 @@ export default function ProducaoPage() {
     updateOrder(selected.code, (o) => ({ ...o, stages: o.stages.map((s) => s.key === stageKey ? { ...s, checks: s.checks.map((c, i) => i === 0 ? { ...c, done: true } : c) } : s) }));
   }
   const currentStage = selected?.stages.find((s) => s.key === activeStage);
-  useEffect(() => { setQuantityDraft(String(currentStage?.completed ?? 0)); }, [selectedId, activeStage, currentStage?.completed]);
+  const currentDraftKey = selectedId + ":" + activeStage + ":" + (currentStage?.completed ?? 0);
+  if (currentDraftKey !== quantityDraftKey) {
+    setQuantityDraftKey(currentDraftKey);
+    setQuantityDraft(String(currentStage?.completed ?? 0));
+  }
 
   if (selected && currentStage) {
     const stageIndex = selected.stages.findIndex((s) => s.key === activeStage);

@@ -48,7 +48,7 @@ export default async function ColaboradorDetalhePage({ params }: { params: Promi
         </div>
         <div className="flex items-center gap-2">
           {ch ? <StatusChip status={ch.status} label={ch.label} /> : <span className="text-xs text-muted-foreground">Desligado</span>}
-          {colaborador.status !== "DESLIGADO" && <StatusSelect id={colaborador.id} status={colaborador.status} />}
+          <StatusSelect id={colaborador.id} status={colaborador.status} />
           <ConfirmDeleteButton
             action={excluirColaborador}
             id={colaborador.id}
