@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
     });
 
     let cascata: Awaited<ReturnType<typeof processarCascataPedido>> | null = null;
-    if (etapa === "GANHO" && atualizado.status === "ORCAMENTO") {
+    if (etapa === "GANHO") {
       try {
         cascata = await processarCascataPedido(atualizado.id);
       } catch (error) {
