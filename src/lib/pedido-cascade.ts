@@ -14,6 +14,28 @@ export async function processarCascataPedido(pedidoId: string) {
     if (pedido.status === "CANCELADO") throw new Error("Pedido cancelado não pode iniciar a cascata.");
     if (!pedido.itens.length) throw new Error("O pedido precisa ter ao menos um produto.");
 
+    // Bloqueio seguro: sem BOM não existe base técnica para planejar produção,
+    // reservar componentes ou gerar compras. O pedido permanece ganho, aguardando cadastro.
+    const produtosSemBOM = pedido.itens
+      .filter((linha) => linha.produto.bom.length === 0)
+      .map((linha) => linha.produto.sku);
+    if (produtosSemBOM.length > 0) {
+      if (pedido.status !== "CANCELADO" && pedido.status !== "AGUARDANDO_MATERIAL") {
+        await tx.pedido.update({ where: { id: pedido.id }, data: { status: "AGUARDANDO_MATERIAL" } });
+      }
+      return {
+        jaProcessado: false,
+        bloqueadoPorBOM: true,
+        motivo: "Cadastre a ficha técnica (BOM) dos produtos antes de gerar ordens, reservas ou compras.",
+        ordensCriadas: 0,
+        etapasCriadas: 0,
+        pedidosCompraCriados: 0,
+        itensSemFornecedor: [],
+        produtosSemBOM,
+        itensAComprar: 0,
+      };
+    }
+
     let ordensCriadas = 0;
     let etapasCriadas = 0;
     for (const [index, item] of pedido.itens.entries()) {
