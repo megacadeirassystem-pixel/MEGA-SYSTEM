@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { processarCascataPedido } from "@/lib/pedido-cascade";
 
 export async function GET() {
   // The product catalog exposes only active product identification and base
@@ -95,13 +94,6 @@ export async function POST(request: Request) {
     itens: { create: body.itens.map(i => ({ produtoId: i.produtoId, quantidade: i.quantidade, valorUnitario: i.valorUnitario, observacao: i.observacao || null })) },
   }, include: { itens: { include: { produto: { select: { sku: true, nome: true } } } } } });
 
-  let cascata: Awaited<ReturnType<typeof processarCascataPedido>> | null = null;
-  try {
-    cascata = await processarCascataPedido(pedido.id);
-  } catch (error) {
-    console.error("[POST /api/pedidos] cascata (produção/compras/financeiro) falhou:", error);
-  }
-
-  return NextResponse.json({ pedido, cascata, analise: { subtotal, total, necessidades, linhasSemBOM,
+  return NextResponse.json({ pedido, analise: { subtotal, total, necessidades, linhasSemBOM,
     analiseCompleta: linhasSemBOM.length === 0 } }, { status: 201 });
 }
