@@ -22,7 +22,8 @@ export async function GET() {
   `;
   const map=new Map<string,any>();
   for(const r of rows){if(!map.has(r.id))map.set(r.id,{id:r.id,code:r.codigo,pedido:r.pedido_codigo,client:r.cliente,quantity:r.quantidade,product:r.produto,sku:r.sku,status:r.status,stages:[]});if(r.etapa)map.get(r.id).stages.push({key:r.etapa,status:r.etapa_status,planned:r.quantidade_planejada,completed:r.quantidade_concluida,checks:r.checklist??labels[r.etapa].map(label=>({label,done:false}))});}
-  for (const order of map.values()) { const existing = new Map(order.stages.map((s:any)=>[s.key,s])); order.stages = stages.map(key => existing.get(key) ?? ({key,status:"PENDENTE",planned:order.quantity,completed:0,checks:labels[key].map(label=>({label,done:false}))})); }\n  return NextResponse.json({orders:[...map.values()],stageDefinitions:labels});
+  for (const order of map.values()) { const existing = new Map(order.stages.map((s:any)=>[s.key,s])); order.stages = stages.map(key => existing.get(key) ?? ({key,status:"PENDENTE",planned:order.quantity,completed:0,checks:labels[key].map(label=>({label,done:false}))})); }
+  return NextResponse.json({orders:[...map.values()],stageDefinitions:labels});
  } catch(error){console.error("[GET /api/producao/ordens]",error);return NextResponse.json({error:"Não foi possível carregar as ordens reais."},{status:500});}
 }
 export async function PATCH(request:Request){
