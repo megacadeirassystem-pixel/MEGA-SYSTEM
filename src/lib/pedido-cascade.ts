@@ -71,11 +71,21 @@ export async function processarCascataPedido(pedidoId: string) {
       // portanto, ao calcular disponibilidade, devolvemos temporariamente a própria reserva.
       await tx.$queryRaw`SELECT "itemId" FROM public.estoque_itens WHERE "itemId" = ${itemId} FOR UPDATE`;
       const estoque = await tx.estoqueItem.findUnique({ where: { itemId } });
-      const reservaPropria = await tx.movimentoEstoque.aggregate({
-        where: { pedidoId: pedido.id, itemId, tipo: "RESERVA" },
-        _sum: { quantidade: true },
-      });
-      const jaReservado = Number(reservaPropria._sum.quantidade ?? 0);
+      const [reservas, liberacoes] = await Promise.all([
+        tx.movimentoEstoque.aggregate({
+          where: { pedidoId: pedido.id, itemId, tipo: "RESERVA" },
+          _sum: { quantidade: true },
+        }),
+        tx.movimentoEstoque.aggregate({
+          where: { pedidoId: pedido.id, itemId, tipo: "LIBERACAO_RESERVA" },
+          _sum: { quantidade: true },
+        }),
+      ]);
+      // Reserva efetiva = reservas históricas menos liberações/consumos já lançados.
+      const jaReservado = Math.max(
+        0,
+        Number(reservas._sum.quantidade ?? 0) - Number(liberacoes._sum.quantidade ?? 0),
+      );
       const saldo = Number(estoque?.saldoAtual ?? 0);
       const reservadoTotal = Number(estoque?.reservado ?? 0);
       const disponivelParaEstePedido = Math.max(0, saldo - Math.max(0, reservadoTotal - jaReservado));
