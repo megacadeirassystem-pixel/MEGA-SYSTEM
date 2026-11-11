@@ -61,9 +61,7 @@ export async function processarCascataPedido(pedidoId: string) {
     }
 
     const necessidade = new Map<string, { necessario: number; fornecedorId: string | null; sku: string }>();
-    const produtosSemBOM: string[] = [];
     for (const linha of pedido.itens) {
-      if (!linha.produto.bom.length) produtosSemBOM.push(linha.produto.sku);
       for (const b of linha.produto.bom) {
         const atual = necessidade.get(b.itemId) ?? { necessario: 0, fornecedorId: b.item.fornecedorPrincipalId, sku: b.item.sku };
         atual.necessario += Number(b.quantidadePorUnidade) * Number(b.fatorPerda) * linha.quantidade;
