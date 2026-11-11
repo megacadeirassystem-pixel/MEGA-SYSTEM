@@ -143,7 +143,6 @@ export async function processarCascataPedido(pedidoId: string) {
         continue;
       }
 
-      const sequencia = porFornecedor.size;
       const codigo = `PC-${pedido.codigo}-${String(pedidosCompraCriados + 1).padStart(2, "0")}`;
       // Evita colisão caso já exista uma compra aprovada/cancelada para o mesmo fornecedor.
       const codigoLivre = await tx.pedidoCompra.findUnique({ where: { codigo } });
