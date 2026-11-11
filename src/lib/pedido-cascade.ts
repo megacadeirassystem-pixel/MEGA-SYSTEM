@@ -11,16 +11,15 @@ export async function processarCascataPedido(pedidoId: string) {
       include: { itens: { include: { produto: { include: { bom: { include: { item: true } } } } } } },
     });
     if (pedido.etapaFunil !== "GANHO") throw new Error("Somente pedidos ganhos podem iniciar a cascata.");
-    if (pedido.status === "CANCELADO") throw new Error("Pedido cancelado não pode iniciar a cascata.");
     if (!pedido.itens.length) throw new Error("O pedido precisa ter ao menos um produto.");
 
     // Bloqueio seguro: sem BOM não existe base técnica para planejar produção,
-    // reservar componentes ou gerar compras. O pedido permanece ganho, aguardando cadastro.
+    // reservar componentes ou gerar compras.
     const produtosSemBOM = pedido.itens
       .filter((linha) => linha.produto.bom.length === 0)
       .map((linha) => linha.produto.sku);
     if (produtosSemBOM.length > 0) {
-      if (pedido.status !== "CANCELADO" && pedido.status !== "AGUARDANDO_MATERIAL") {
+      if (pedido.status !== "AGUARDANDO_MATERIAL") {
         await tx.pedido.update({ where: { id: pedido.id }, data: { status: "AGUARDANDO_MATERIAL" } });
       }
       return {
@@ -100,9 +99,14 @@ export async function processarCascataPedido(pedidoId: string) {
       porFornecedor.set(f.fornecedorId, arr);
     }
     let pedidosCompraCriados = 0;
+    let sequenciaCompra = 0;
     for (const [fornecedorId, itens] of porFornecedor) {
-      const codigo = `PC-${pedido.codigo}-${String(pedidosCompraCriados + 1).padStart(2, "0")}`;
-      if (await tx.pedidoCompra.findUnique({ where: { codigo } })) continue;
+      sequenciaCompra++;
+      const codigo = `PC-${pedido.codigo}-${String(sequenciaCompra).padStart(2, "0")}`;
+      const existente = await tx.pedidoCompra.findFirst({
+        where: { OR: [{ codigo }, { origemPedidoId: pedido.id, fornecedorId }] },
+      });
+      if (existente) continue;
       await tx.pedidoCompra.create({ data: {
         codigo, fornecedorId, status: "SUGERIDO", origemPedidoId: pedido.id,
         itens: { create: itens.map((i) => ({ itemId: i.itemId, quantidade: i.quantidade, precoUnitario: 0 })) },
@@ -120,7 +124,7 @@ export async function processarCascataPedido(pedidoId: string) {
     }
     if (pedido.status === "ORCAMENTO") {
       await tx.pedido.update({ where: { id: pedido.id }, data: {
-        status: faltantes.length > 0 || produtosSemBOM.length > 0 ? "AGUARDANDO_MATERIAL" : "CONFIRMADO",
+        status: faltantes.length > 0 ? "AGUARDANDO_MATERIAL" : "CONFIRMADO",
       } });
     }
     return {
